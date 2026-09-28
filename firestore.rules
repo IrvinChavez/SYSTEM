@@ -32,7 +32,8 @@ service cloud.firestore {
           && data.totalXp is int
           && data.stats is map
           // La foto es un data URI JPEG de 256 px (~20-40 KB); 300 KB deja margen sin permitir abusos.
-          && (!('photo' in data) || data.photo == null || isText(data.photo, 300000));
+          && (!('photo' in data) || data.photo == null || isText(data.photo, 300000))
+          && (!('calendarUrl' in data) || data.calendarUrl == null || isText(data.calendarUrl, 1000));
       }
 
       match /missions/{missionId} {
@@ -54,7 +55,9 @@ service cloud.firestore {
           && isTime(request.resource.data.end)
           && request.resource.data.end > request.resource.data.start
           && isText(request.resource.data.location, 60)
-          && isText(request.resource.data.category, 20);
+          && isText(request.resource.data.category, 20)
+          // Eventos importados del calendario externo (Notion Calendar / Google).
+          && (!('source' in request.resource.data) || request.resource.data.source == 'calendar');
       }
 
       match /dailyProgress/{dateKey} {

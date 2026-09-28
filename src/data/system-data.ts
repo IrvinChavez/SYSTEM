@@ -17,6 +17,8 @@ export type AgendaEvent = {
   end: string;
   location: string;
   category: string;
+  // "calendar" = importado de tu calendario externo (Notion Calendar / Google). Solo se edita allá.
+  source?: "calendar";
 };
 
 export type PlayerStats = Record<StatKey, number>;
@@ -26,6 +28,8 @@ export type PlayerProfile = {
   username: string;
   // Foto de perfil como data URI JPEG de 256 px (cabe de sobra en el documento de Firestore).
   photo: string | null;
+  // "Dirección secreta en formato iCal" del calendario que se importa a la agenda (null = sin conectar).
+  calendarUrl: string | null;
   totalXp: number;
   stats: PlayerStats;
 };

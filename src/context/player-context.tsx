@@ -1,5 +1,6 @@
 import { createContext, ReactNode, useContext, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/context/auth-context";
+import { CalendarSync, useCalendarSync } from "@/context/use-calendar-sync";
 import { AgendaEvent, DailyProgress, emptyStats, Mission, PlayerProfile } from "@/data/system-data";
 import { addDays, toDateKey } from "@/lib/dates";
 import { emailToUsername } from "@/lib/username";
@@ -35,6 +36,8 @@ type PlayerContextValue = {
   toggleMission: (missionId: string) => Promise<void>;
   levelUpNotice: number | null;
   dismissLevelUp: () => void;
+  // Calendario externo (Notion Calendar vía Google Calendar) importado a la agenda.
+  calendar: CalendarSync;
 };
 
 const PlayerContext = createContext<PlayerContextValue | null>(null);
@@ -80,8 +83,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     return () => unsubscribers.forEach((unsubscribe) => unsubscribe());
   }, [user, todayKey]);
 
+  const calendar = useCalendarSync(uid, profile?.calendarUrl ?? null, todayKey);
+
   const value = useMemo<PlayerContextValue>(() => {
-    const safeProfile = profile ?? { name: user?.displayName ?? "Player", username: emailToUsername(user?.email), photo: null, totalXp: 0, stats: emptyStats };
+    const safeProfile = profile ?? { name: user?.displayName ?? "Player", username: emailToUsername(user?.email), photo: null, calendarUrl: null, totalXp: 0, stats: emptyStats };
     const todayProgress = history.find((entry) => entry.dateKey === todayKey);
     const completedIds = todayProgress?.completedMissionIds ?? [];
     const missions = (missionList ?? []).map((mission) => ({ ...mission, completed: completedIds.includes(mission.id) }));
@@ -117,8 +122,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       },
       levelUpNotice,
       dismissLevelUp: () => setLevelUpNotice(null),
+      calendar,
     };
-  }, [uid, user, profile, missionList, history, events, error, todayKey, levelUpNotice]);
+  }, [uid, user, profile, missionList, history, events, error, todayKey, levelUpNotice, calendar]);
 
   return <PlayerContext.Provider value={value}>{children}</PlayerContext.Provider>;
 }

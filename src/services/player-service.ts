@@ -30,6 +30,7 @@ import {
   statKeys,
   type StatKey,
 } from "@/data/system-data";
+import { calendarDocId, type ImportedEvent } from "@/lib/ics";
 import type { PlanAction } from "@/lib/plan";
 
 // Estructura en Firestore:
@@ -55,7 +56,7 @@ export async function initPlayer(uid: string, username: string, name?: string) {
       return;
     }
 
-    const profile: PlayerProfile = { name: name || username || "Player", username, photo: null, totalXp: 0, stats: emptyStats };
+    const profile: PlayerProfile = { name: name || username || "Player", username, photo: null, calendarUrl: null, totalXp: 0, stats: emptyStats };
     transaction.set(userDoc(uid), { ...profile, createdAt: serverTimestamp() });
     starterMissions.forEach((mission, index) => {
       transaction.set(doc(missionsCollection(uid), `starter-${index}`), { ...mission, createdAt: serverTimestamp() });
@@ -74,6 +75,7 @@ export function subscribeToProfile(uid: string, onChange: (profile: PlayerProfil
       name: data.name ?? "Player",
       username: data.username ?? (typeof data.email === "string" ? data.email.split("@")[0] : ""),
       photo: typeof data.photo === "string" ? data.photo : null,
+      calendarUrl: typeof data.calendarUrl === "string" ? data.calendarUrl : null,
       totalXp: data.totalXp ?? 0,
       stats: { ...emptyStats, ...data.stats },
     });
@@ -184,6 +186,39 @@ export async function updatePlayerName(uid: string, name: string) {
 
 export async function updatePlayerPhoto(uid: string, photo: string | null) {
   await setDoc(userDoc(uid), { photo }, { merge: true });
+}
+
+export async function updateCalendarUrl(uid: string, calendarUrl: string | null) {
+  await setDoc(userDoc(uid), { calendarUrl }, { merge: true });
+}
+
+const calendarFields = ["title", "date", "start", "end", "location", "category"] as const;
+
+// Deja en la agenda exactamente los eventos importados del calendario externo desde `fromDateKey`: crea o
+// actualiza los que cambiaron y borra los que ya no existen allá. Los ids son estables (calendarDocId), así
+// que sincronizar dos veces o desde dos teléfonos no duplica nada. Los eventos creados en la app no se tocan.
+export async function replaceCalendarEvents(uid: string, imported: ImportedEvent[], fromDateKey: string) {
+  const snapshot = await getDocs(query(eventsCollection(uid), where("date", ">=", fromDateKey)));
+  const current = new Map(snapshot.docs.filter((item) => item.data().source === "calendar").map((item) => [item.id, item.data()]));
+  const next = new Map(imported.map(({ externalId, ...event }) => [calendarDocId(externalId), event]));
+
+  const writes: ((batch: ReturnType<typeof writeBatch>) => void)[] = [];
+  next.forEach((event, id) => {
+    const before = current.get(id);
+    if (!before || calendarFields.some((field) => before[field] !== event[field])) {
+      writes.push((batch) => batch.set(doc(eventsCollection(uid), id), { ...event, source: "calendar", syncedAt: serverTimestamp() }));
+    }
+  });
+  current.forEach((_, id) => {
+    if (!next.has(id)) writes.push((batch) => batch.delete(doc(eventsCollection(uid), id)));
+  });
+
+  for (let start = 0; start < writes.length; start += 450) {
+    const batch = writeBatch(firestore);
+    writes.slice(start, start + 450).forEach((write) => write(batch));
+    await batch.commit();
+  }
+  return writes.length;
 }
 
 // Borra todos los datos del jugador (subcolecciones y perfil). Firestore no borra subcolecciones en cascada,

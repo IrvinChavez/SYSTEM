@@ -47,7 +47,8 @@ export function sanitizeMission(raw: Record<string, unknown>, fallbackStat: Stat
 export function sanitizeActions(rawActions: unknown, player: PlanSnapshot): PlanAction[] {
   if (!Array.isArray(rawActions)) return [];
   const missionsById = new Map(player.missions.map((mission) => [mission.id, mission]));
-  const eventsById = new Map(player.events.map((event) => [event.id, event]));
+  // Los eventos importados del calendario externo se editan allá: la IA solo acomoda cosas a su alrededor.
+  const eventsById = new Map(player.events.filter((event) => event.source !== "calendar").map((event) => [event.id, event]));
 
   return rawActions.slice(0, 12).flatMap((item): PlanAction[] => {
     if (!item || typeof item !== "object") return [];

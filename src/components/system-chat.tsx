@@ -1,5 +1,5 @@
 import { Image } from "expo-image";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { Avatar } from "@/components/avatar";
 import { Card, Chip, Icon, IconButton, PrimaryButton, SectionHeading } from "@/components/ui";
@@ -17,11 +17,13 @@ type Entry = ChatMessage & {
   status?: "pending" | "applied" | "discarded";
 };
 
-const quickPrompts = [
-  "Acomoda mi día de mañana",
-  "Mañana tengo clase de 8 a 14, ¿cuándo entreno?",
-  "Quiero empezar a leer 20 min diarios",
-  "Motívame para terminar hoy",
+// "send" manda la pregunta tal cual; "draft" deja el inicio escrito para que completes tus actividades.
+const quickPrompts: { label: string; text: string; mode: "send" | "draft" }[] = [
+  { label: "¿Qué tengo hoy?", text: "¿Qué tengo hoy, cuánto dura cada cosa y cuánto tiempo libre me queda?", mode: "send" },
+  { label: "Te cuento mis actividades diarias", text: "Mis actividades de todos los días son: ", mode: "draft" },
+  { label: "Te paso mi horario de clases", text: "Mi horario de clases es: ", mode: "draft" },
+  { label: "Acomoda mi día de mañana", text: "Acomoda mi día de mañana", mode: "send" },
+  { label: "Motívame para terminar hoy", text: "Motívame para terminar hoy", mode: "send" },
 ];
 
 const greeting: Entry = {
@@ -41,8 +43,10 @@ function toHistory(entries: Entry[]): ChatMessage[] {
     });
 }
 
-export function SystemChat({ player }: { player: PlayerSnapshot }) {
+// `autoPrompt` llega desde otras pantallas (p. ej. la tarjeta "En curso" de Inicio); `key` distingue cada envío.
+export function SystemChat({ player, autoPrompt }: { player: PlayerSnapshot; autoPrompt?: { text: string; key: string } }) {
   const { uid, profile } = usePlayer();
+  const inputRef = useRef<TextInput>(null);
   const [entries, setEntries] = useState<Entry[]>([greeting]);
   const [input, setInput] = useState("");
   const [thinking, setThinking] = useState(false);
@@ -76,6 +80,24 @@ export function SystemChat({ player }: { player: PlayerSnapshot }) {
     } finally {
       setThinking(false);
     }
+  };
+
+  const handledPrompt = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (!autoPrompt || handledPrompt.current === autoPrompt.key) return;
+    handledPrompt.current = autoPrompt.key;
+    void send(autoPrompt.text);
+    // Solo debe dispararse cuando llega un prompt nuevo.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoPrompt?.key]);
+
+  const pickQuickPrompt = (prompt: (typeof quickPrompts)[number]) => {
+    if (prompt.mode === "send") {
+      void send(prompt.text);
+      return;
+    }
+    setInput(prompt.text);
+    inputRef.current?.focus();
   };
 
   const apply = (index: number, actions: PlanAction[]) => {
@@ -133,15 +155,16 @@ export function SystemChat({ player }: { player: PlayerSnapshot }) {
 
       {entries.length <= 1 ? (
         <View style={styles.quick}>
-          {quickPrompts.map((prompt) => <Chip key={prompt} label={prompt} selected={false} onPress={() => send(prompt)} />)}
+          {quickPrompts.map((prompt) => <Chip key={prompt.label} label={prompt.label} selected={false} onPress={() => pickQuickPrompt(prompt)} />)}
         </View>
       ) : null}
 
       <View style={styles.inputRow}>
         <TextInput
+          ref={inputRef}
           value={input}
           onChangeText={setInput}
-          placeholder="Ej. Mañana trabajo de 9 a 5 y quiero ir al gym…"
+          placeholder="Ej. Tengo Cálculo lunes y miércoles de 7 a 9 y quiero ir al gym…"
           placeholderTextColor={systemColors.textFaint}
           selectionColor={systemColors.accent}
           style={styles.input}
@@ -279,7 +302,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 3,
   },
   userBubble: {
-    backgroundColor: "#17325A",
+    backgroundColor: systemColors.primarySoft,
     borderBottomRightRadius: 3,
   },
   messageText: {

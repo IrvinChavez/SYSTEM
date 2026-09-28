@@ -1,4 +1,5 @@
 import { Image } from "expo-image";
+import { useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { SystemChat } from "@/components/system-chat";
@@ -47,6 +48,8 @@ function useQuote() {
 export default function SystemScreen() {
   const { uid, profile, missions, completedCount, streak, events, todayEvents, experience, experienceGoal, level, rank, weeklyProgress } = usePlayer();
   const { quote, fromApi, loading, refresh } = useQuote();
+  // Inicio abre esta pantalla con ?prompt=…&t=<marca de tiempo> para preguntarle algo directo a la IA.
+  const { prompt, t } = useLocalSearchParams<{ prompt?: string; t?: string }>();
   const weakest = weakestStat(profile.stats);
   const [focus, setFocus] = useState<StatKey | null>(null);
   const [aiMissions, setAiMissions] = useState<Omit<Mission, "id">[] | null>(null);
@@ -138,7 +141,7 @@ export default function SystemScreen() {
         </View>
       </View>
 
-      <SystemChat player={player} />
+      <SystemChat player={player} autoPrompt={prompt && t ? { text: prompt, key: t } : undefined} />
 
       <Card style={styles.quoteCard}>
         <SectionHeading icon="✦" title="FRASE DEL DÍA" trailing={<IconButton icon="refresh" label="Otra frase" onPress={refresh} />} />
@@ -213,7 +216,7 @@ const styles = StyleSheet.create({
   },
   heroShade: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: "rgba(5, 9, 20, 0.35)",
+    backgroundColor: "rgba(5, 7, 11, 0.35)",
   },
   heroCopy: {
     flex: 1,

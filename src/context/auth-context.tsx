@@ -12,6 +12,7 @@ import {
 import { createContext, ReactNode, useContext, useEffect, useState } from "react";
 import { firebaseAuth } from "@/config/firebase";
 import { loginIdentifierToEmail, normalizeUsername } from "@/lib/username";
+import { BiometricError, clearBiometricLogin, generatePassword, readBiometricLogin, saveBiometricLogin, storedBiometricUsername } from "@/services/biometric-service";
 import { deletePlayerData, initPlayer } from "@/services/player-service";
 
 type AuthContextValue = {
@@ -19,6 +20,14 @@ type AuthContextValue = {
   initializing: boolean;
   login: (username: string, password: string) => Promise<void>;
   register: (username: string, password: string) => Promise<void>;
+  // Con `withBiometrics`, antes de ingresar/registrarse se pide la huella y se guarda la contraseña protegida con ella.
+  loginWithPassword: (username: string, password: string, withBiometrics: boolean) => Promise<void>;
+  registerWithPassword: (username: string, password: string, withBiometrics: boolean) => Promise<void>;
+  loginWithBiometrics: () => Promise<void>;
+  // Registro solo con huella: la app genera una contraseña fuerte y la guarda protegida con la huella.
+  registerWithBiometrics: (username: string) => Promise<void>;
+  // Activa la huella con la sesión ya abierta: primero comprueba la contraseña con Firebase.
+  enableBiometrics: (password: string) => Promise<void>;
   logout: () => Promise<void>;
   deleteAccount: (password: string) => Promise<void>;
 };
@@ -46,6 +55,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await updateProfile(credential.user, { displayName: username });
       await initPlayer(credential.user.uid, username, username);
     },
+    loginWithPassword: async (username, password, withBiometrics) => {
+      await withSavedCredentials(normalizeUsername(username), password, withBiometrics, () => value.login(username, password));
+    },
+    registerWithPassword: async (username, password, withBiometrics) => {
+      await withSavedCredentials(normalizeUsername(username), password, withBiometrics, () => value.register(username, password));
+    },
+    loginWithBiometrics: async () => {
+      const credentials = await readBiometricLogin();
+      await value.login(credentials.username, credentials.password);
+    },
+    registerWithBiometrics: async (username) => {
+      const password = generatePassword();
+      await withSavedCredentials(normalizeUsername(username), password, true, () => value.register(username, password));
+    },
+    enableBiometrics: async (password) => {
+      const current = firebaseAuth.currentUser;
+      if (!current?.email) throw new Error("No hay sesión activa.");
+      await reauthenticateWithCredential(current, EmailAuthProvider.credential(current.email, password));
+      await saveBiometricLogin(current.email.split("@")[0], password);
+    },
+    // La huella se conserva al cerrar sesión, para volver a entrar con ella.
     logout: () => signOut(firebaseAuth),
     // Requisito de Google Play: el usuario puede borrar su cuenta y sus datos desde la app.
     // Firebase exige un inicio de sesión reciente para borrar la cuenta, por eso se pide la contraseña.
@@ -55,10 +85,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await reauthenticateWithCredential(current, EmailAuthProvider.credential(current.email, password));
       await deletePlayerData(current.uid);
       await deleteUser(current);
+      if (await storedBiometricUsername() === current.email.split("@")[0]) await clearBiometricLogin();
     },
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+// Guarda las credenciales con la huella ANTES de entrar (después, el cambio de sesión ya cambió de pantalla) y las
+// borra si el ingreso falla, para no dejar guardada una contraseña incorrecta.
+async function withSavedCredentials(username: string, password: string, withBiometrics: boolean, signIn: () => Promise<void>) {
+  if (!withBiometrics) {
+    await signIn();
+    return;
+  }
+  await saveBiometricLogin(username, password);
+  try {
+    await signIn();
+  } catch (error) {
+    await clearBiometricLogin();
+    throw error;
+  }
 }
 
 export function useAuth() {
@@ -71,6 +118,7 @@ export function useAuth() {
 
 // Traduce los códigos de Firebase Auth a mensajes para el usuario.
 export function authErrorMessage(error: unknown) {
+  if (error instanceof BiometricError) return error.message;
   const code = typeof error === "object" && error && "code" in error ? String(error.code) : "";
 
   switch (code) {

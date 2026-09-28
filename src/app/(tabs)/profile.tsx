@@ -2,6 +2,7 @@ import { Link } from "expo-router";
 import { useState } from "react";
 import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { Avatar } from "@/components/avatar";
+import { BiometricSettingsCard } from "@/components/biometric-settings";
 import { Card, Icon, PrimaryButton, ProgressBar, Screen, ScreenHeader, SectionHeading, TextField } from "@/components/ui";
 import { systemColors } from "@/constants/system-colors";
 import { authErrorMessage, useAuth } from "@/context/auth-context";
@@ -9,6 +10,8 @@ import { usePlayer } from "@/context/player-context";
 import { statInfo, statKeys } from "@/data/system-data";
 import { confirmAction, notify, syncInBackground } from "@/lib/confirm";
 import { PhotoPermissionError, pickProfilePhoto } from "@/lib/pick-photo";
+import { useBiometrics } from "@/lib/use-biometrics";
+import { readBiometricLogin } from "@/services/biometric-service";
 import { updatePlayerName, updatePlayerPhoto } from "@/services/player-service";
 
 export default function ProfileScreen() {
@@ -17,6 +20,17 @@ export default function ProfileScreen() {
   const [deletePassword, setDeletePassword] = useState("");
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const biometrics = useBiometrics();
+
+  // Las cuentas creadas con huella no conocen su contraseña: se puede confirmar con la huella.
+  const fillPasswordWithBiometrics = async () => {
+    setDeleteError(null);
+    try {
+      setDeletePassword((await readBiometricLogin("Confirma para eliminar tu cuenta")).password);
+    } catch (reason) {
+      setDeleteError(authErrorMessage(reason));
+    }
+  };
 
   const handleDeleteAccount = () => {
     if (!deletePassword) {
@@ -158,6 +172,8 @@ export default function ProfileScreen() {
         </View>
       </Card>
 
+      <BiometricSettingsCard username={profile.username} />
+
       <Card style={styles.dangerCard}>
         <SectionHeading icon="⚠" title="ZONA DE PELIGRO" />
         <Text style={styles.helper}>Eliminar tu cuenta borra para siempre tu progreso, misiones, agenda y foto.</Text>
@@ -171,6 +187,9 @@ export default function ProfileScreen() {
                 secureTextEntry
                 autoComplete="current-password"
               />
+              {biometrics.support.available && biometrics.savedUsername === profile.username && !deletePassword ? (
+                <PrimaryButton label={`CONFIRMAR CON ${biometrics.support.label.toUpperCase()}`} variant="outline" onPress={fillPasswordWithBiometrics} />
+              ) : null}
               {deleteError ? <Text style={styles.deleteError}>{deleteError}</Text> : null}
               <PrimaryButton label="ELIMINAR MI CUENTA" variant="danger" onPress={handleDeleteAccount} loading={deleteBusy} />
               <PrimaryButton label="CANCELAR" variant="outline" onPress={() => { setDeleting(false); setDeletePassword(""); setDeleteError(null); }} disabled={deleteBusy} />
@@ -287,7 +306,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: systemColors.accent,
     borderRadius: 38,
-    backgroundColor: "#0C1A30",
+    backgroundColor: systemColors.surfaceActive,
   },
   rankLetter: {
     color: systemColors.accent,

@@ -22,7 +22,7 @@ export default function TabsLayout() {
           sceneStyle: { backgroundColor: systemColors.background },
           tabBarActiveTintColor: systemColors.accent,
           tabBarInactiveTintColor: systemColors.textMuted,
-          tabBarActiveBackgroundColor: "#0C1A30",
+          tabBarActiveBackgroundColor: systemColors.surfaceActive,
           tabBarLabelStyle: { fontSize: 11, fontWeight: "600" },
           tabBarStyle: {
             height: 64,

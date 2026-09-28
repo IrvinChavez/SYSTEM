@@ -14,7 +14,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#050914",
+        "backgroundColor": "#05070B",
         "foregroundImage": "./assets/images/android-icon-foreground.png"
       },
       "predictiveBackGestureEnabled": false,
@@ -30,7 +30,7 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#050914",
+          "backgroundColor": "#05070B",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 200
         }
@@ -41,6 +41,18 @@
           "photosPermission": "SYSTEM necesita acceso a tus fotos para cambiar tu foto de perfil.",
           "cameraPermission": "SYSTEM necesita la cámara para tomar tu foto de perfil.",
           "microphonePermission": false
+        }
+      ],
+      [
+        "expo-secure-store",
+        {
+          "faceIDPermission": "SYSTEM usa Face ID para que entres a tu cuenta sin escribir la contraseña."
+        }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "SYSTEM usa Face ID para que entres a tu cuenta sin escribir la contraseña."
         }
       ]
     ],

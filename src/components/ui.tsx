@@ -279,7 +279,7 @@ export const styles = StyleSheet.create({
   },
   chipSelected: {
     borderColor: systemColors.accent,
-    backgroundColor: "#17325A",
+    backgroundColor: systemColors.primarySoft,
   },
   chipText: {
     color: systemColors.textMuted,

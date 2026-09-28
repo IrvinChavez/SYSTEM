@@ -14,6 +14,14 @@ const sections: { title: string; body: string }[] = [
     body: "En Google Firebase (Authentication y Cloud Firestore). Cada cuenta solo puede leer y modificar sus propios datos.",
   },
   {
+    title: "Huella y Face ID (opcional)",
+    body: "Si activas el ingreso con huella, tu usuario y contraseña se guardan cifrados solo en tu teléfono (Android Keystore / iOS Keychain) y solo se desbloquean con tu biometría. Tu huella o tu rostro nunca salen del teléfono: ni nosotros ni Firebase los recibimos.",
+  },
+  {
+    title: "Calendario externo (opcional)",
+    body: "Si conectas Notion Calendar, guardamos en tu cuenta la dirección secreta en formato iCal que pegues y copiamos a tu agenda los eventos con hora de los próximos 14 días (título, fecha, horario y lugar). Nuestro servidor descarga ese calendario solo para importarlo y no lo conserva. Nunca modificamos tu calendario. Al desconectarlo se borran el enlace y los eventos importados de hoy en adelante.",
+  },
+  {
     title: "Inteligencia artificial",
     body: "Cuando usas el chat o el generador de misiones, enviamos a Groq (proveedor del modelo de IA) tu mensaje junto con un resumen de tu nivel, misiones y agenda, solo para generar la respuesta. No enviamos tu contraseña ni tu foto.",
   },

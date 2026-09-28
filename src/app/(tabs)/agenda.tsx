@@ -1,13 +1,16 @@
 import { useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
+import { CalendarConnectCard } from "@/components/calendar-connect";
+import { LiveClock, timingLabel } from "@/components/event-timer";
 import { FieldGroup, FormSheet } from "@/components/form-sheet";
-import { ActionPill, Card, Chip, EmptyState, IconButton, PrimaryButton, Screen, ScreenHeader, SectionHeading, TextField } from "@/components/ui";
+import { ActionPill, Card, Chip, EmptyState, Icon, IconButton, PrimaryButton, Screen, ScreenHeader, SectionHeading, TextField } from "@/components/ui";
 import { systemColors } from "@/constants/system-colors";
 import { usePlayer } from "@/context/player-context";
 import { AgendaEvent, eventCategories } from "@/data/system-data";
 import { confirmAction, syncInBackground } from "@/lib/confirm";
-import { addDays, formatDateLabel, isValidTime, toDateKey } from "@/lib/dates";
+import { addDays, eventTiming, formatDateLabel, formatDuration, isValidTime, timeToMinutes, toDateKey } from "@/lib/dates";
+import { useNow } from "@/lib/use-now";
 import { addEvent, deleteEvent } from "@/services/player-service";
 
 type EventDraft = Omit<AgendaEvent, "id">;
@@ -21,6 +24,7 @@ export default function AgendaScreen() {
   const [formVisible, setFormVisible] = useState(false);
   const [draft, setDraft] = useState<EventDraft>(newDraft);
   const [error, setError] = useState<string | null>(null);
+  const now = useNow(30_000);
 
   const openNew = () => {
     setDraft(newDraft());
@@ -74,28 +78,46 @@ export default function AgendaScreen() {
         action={<ActionPill icon="add" label="Nuevo" onPress={openNew} />}
       />
 
+      <CalendarConnectCard />
+
       {events.length === 0 ? (
         <Card>
-          <EmptyState icon="▦" title="Agenda vacía" text="Agrega tus clases con el botón Nuevo, o cuéntale tu horario a la IA." />
+          <EmptyState icon="▦" title="Agenda vacía" text="Conecta Notion Calendar, agrega tus clases con el botón Nuevo o cuéntale tu horario a la IA." />
         </Card>
       ) : Object.entries(groups).map(([date, dayEvents]) => (
         <Card key={date}>
           <SectionHeading icon="▦" title={formatDateLabel(date).toUpperCase()} trailing={`${dayEvents.length}`} />
           <View style={styles.list}>
-            {dayEvents.map((event) => (
-              <View key={event.id} style={styles.event}>
-                <View style={styles.timeColumn}>
-                  <Text style={styles.time}>{event.start}</Text>
-                  <Text style={styles.timeEnd}>{event.end}</Text>
+            {dayEvents.map((event) => {
+              const live = eventTiming(event, now).status === "live";
+              return (
+                <View key={event.id} style={[styles.event, live && styles.eventLive]}>
+                  <View style={[styles.timeColumn, event.source === "calendar" && styles.timeColumnImported]}>
+                    <Text style={styles.time}>{event.start}</Text>
+                    <Text style={styles.timeEnd}>{event.end}</Text>
+                  </View>
+                  <View style={styles.info}>
+                    <Text style={styles.title}>{event.title}</Text>
+                    {event.location ? <Text style={styles.location}>⌖ {event.location}</Text> : null}
+                    <View style={styles.timingRow}>
+                      {live ? <LiveClock event={event} /> : null}
+                      <Text style={[styles.duration, live && styles.durationLive]}>{timingLabel(event, now)}</Text>
+                    </View>
+                  </View>
+                  <View style={styles.badges}>
+                    <Text style={styles.category}>{event.category}</Text>
+                    {event.source === "calendar" ? <Text style={styles.sourceBadge}>NOTION</Text> : null}
+                  </View>
+                  {event.source === "calendar" ? (
+                    <View style={styles.lock} accessibilityLabel="Se edita en Notion Calendar">
+                      <Icon name="lock-closed-outline" size={16} color={systemColors.textFaint} />
+                    </View>
+                  ) : (
+                    <IconButton icon="trash-outline" label={`Eliminar ${event.title}`} onPress={() => handleDelete(event)} color={systemColors.danger} />
+                  )}
                 </View>
-                <View style={styles.info}>
-                  <Text style={styles.title}>{event.title}</Text>
-                  {event.location ? <Text style={styles.location}>⌖ {event.location}</Text> : null}
-                </View>
-                <Text style={styles.category}>{event.category}</Text>
-                <IconButton icon="trash-outline" label={`Eliminar ${event.title}`} onPress={() => handleDelete(event)} color={systemColors.danger} />
-              </View>
-            ))}
+              );
+            })}
           </View>
         </Card>
       ))}
@@ -117,6 +139,9 @@ export default function AgendaScreen() {
             <TextField label="FIN" value={draft.end} onChangeText={(end) => setDraft({ ...draft, end })} placeholder="11:00" keyboardType="numbers-and-punctuation" maxLength={5} />
           </View>
         </View>
+        {isValidTime(draft.start) && isValidTime(draft.end) && draft.end > draft.start ? (
+          <Text style={styles.durationHint}>Duración: {formatDuration(timeToMinutes(draft.end) - timeToMinutes(draft.start))}</Text>
+        ) : null}
         <TextField label="LUGAR (OPCIONAL)" value={draft.location} onChangeText={(location) => setDraft({ ...draft, location })} placeholder="Aula 3" maxLength={40} />
         <FieldGroup label="CATEGORÍA">
           {eventCategories.map((category) => (
@@ -145,10 +170,52 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     backgroundColor: systemColors.backgroundRaised,
   },
+  eventLive: {
+    borderWidth: 1,
+    borderColor: systemColors.primary,
+    backgroundColor: systemColors.surfaceActive,
+  },
   timeColumn: {
     borderLeftWidth: 3,
     borderLeftColor: systemColors.primary,
     paddingLeft: 8,
+  },
+  timeColumnImported: {
+    borderLeftColor: systemColors.highlight,
+  },
+  timingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 3,
+  },
+  duration: {
+    color: systemColors.textFaint,
+    fontSize: 10,
+  },
+  durationLive: {
+    color: systemColors.accent,
+  },
+  badges: {
+    alignItems: "flex-end",
+    gap: 4,
+  },
+  sourceBadge: {
+    color: systemColors.highlight,
+    fontSize: 8,
+    fontWeight: "700",
+    letterSpacing: 0.6,
+  },
+  lock: {
+    width: 38,
+    height: 38,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  durationHint: {
+    color: systemColors.accent,
+    fontSize: 12,
+    marginTop: -4,
   },
   time: {
     color: systemColors.text,
@@ -176,7 +243,7 @@ const styles = StyleSheet.create({
   category: {
     color: systemColors.accent,
     fontSize: 8,
-    backgroundColor: "#17325A",
+    backgroundColor: systemColors.primarySoft,
     borderRadius: 4,
     paddingHorizontal: 5,
     paddingVertical: 3,

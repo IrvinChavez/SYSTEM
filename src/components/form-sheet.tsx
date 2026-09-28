@@ -37,7 +37,7 @@ const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
     justifyContent: "flex-end",
-    backgroundColor: "rgba(2, 5, 12, 0.75)",
+    backgroundColor: systemColors.overlay,
   },
   dismissArea: {
     flex: 1,

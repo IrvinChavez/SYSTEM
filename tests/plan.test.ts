@@ -36,6 +36,15 @@ test("sanitizeActions: rechaza ids inventados, horas y fechas inválidas", () =>
   assert.deepEqual(actions, []);
 });
 
+test("sanitizeActions: no toca eventos importados del calendario externo", () => {
+  const imported: AgendaEvent = { id: "cal-1", title: "Cálculo", date: "2026-09-28", start: "07:00", end: "09:00", location: "", category: "CLASE", source: "calendar" };
+  const actions = sanitizeActions([
+    { type: "update_event", id: "cal-1", start: "10:00" },
+    { type: "delete_event", id: "cal-1" },
+  ], { ...snapshot, events: [...events, imported] });
+  assert.deepEqual(actions, []);
+});
+
 test("sanitizeActions: tolera basura y limita cantidad", () => {
   assert.deepEqual(sanitizeActions("no es arreglo", snapshot), []);
   assert.deepEqual(sanitizeActions(undefined, snapshot), []);

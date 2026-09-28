@@ -1,6 +1,6 @@
 import { Image } from "expo-image";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
-import { systemColors } from "@/constants/system-colors";
+import { glow, systemColors } from "@/constants/system-colors";
 import { usePlayer } from "@/context/player-context";
 import { rankForLevel } from "@/lib/leveling";
 
@@ -34,7 +34,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(2, 5, 12, 0.82)",
+    backgroundColor: systemColors.overlay,
     padding: 24,
   },
   window: {
@@ -46,7 +46,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     backgroundColor: systemColors.card,
     padding: 24,
-    boxShadow: "0 0 24px rgba(77, 141, 255, 0.6)",
+    boxShadow: `0 0 24px ${glow(0.6)}`,
   },
   image: {
     width: 120,

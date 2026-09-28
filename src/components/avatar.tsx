@@ -1,6 +1,6 @@
 import { Image } from "expo-image";
 import { StyleSheet, View } from "react-native";
-import { systemColors } from "@/constants/system-colors";
+import { glow, systemColors } from "@/constants/system-colors";
 
 const defaultAvatar = require("@/assets/images/default-avatar.png");
 
@@ -24,6 +24,6 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: systemColors.accent,
     backgroundColor: systemColors.card,
-    boxShadow: "0 0 8px rgba(77, 141, 255, 0.7)",
+    boxShadow: `0 0 8px ${glow(0.7)}`,
   },
 });

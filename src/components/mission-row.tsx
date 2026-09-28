@@ -47,7 +47,7 @@ const styles = StyleSheet.create({
     backgroundColor: systemColors.backgroundRaised,
   },
   rowDone: {
-    backgroundColor: "#10253A",
+    backgroundColor: systemColors.primarySoft,
   },
   checkbox: {
     width: 21,

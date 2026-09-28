@@ -2,7 +2,7 @@ import { Image } from "expo-image";
 import { ReactNode } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { systemColors } from "@/constants/system-colors";
+import { glow, systemColors } from "@/constants/system-colors";
 
 const monarch = require("@/assets/images/system-monarch.png");
 
@@ -68,7 +68,7 @@ const styles = StyleSheet.create({
     borderColor: systemColors.accent,
     overflow: "hidden",
     marginBottom: 16,
-    boxShadow: "0 0 24px rgba(77, 141, 255, 0.8)",
+    boxShadow: `0 0 24px ${glow(0.8)}`,
     backgroundColor: systemColors.card,
   },
   hero: {
@@ -94,7 +94,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     backgroundColor: systemColors.card,
     padding: 20,
-    boxShadow: "0 0 18px rgba(77, 141, 255, 0.35)",
+    boxShadow: `0 0 18px ${glow(0.35)}`,
   },
   windowTag: {
     color: systemColors.accent,

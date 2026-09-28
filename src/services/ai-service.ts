@@ -1,4 +1,3 @@
-import { firebaseAuth } from "@/config/firebase";
 import {
   eventCategories,
   missionIcons,
@@ -8,14 +7,14 @@ import {
   type Mission,
   type StatKey,
 } from "@/data/system-data";
+import { formatDuration, freeBlocks, timeToMinutes } from "@/lib/dates";
 import { parseJsonObject, sanitizeActions, sanitizeMission, stripMarkdown, type PlanAction } from "@/lib/plan";
+import { ApiError, postWithSession } from "@/services/api-client";
 
 export { describeAction, findConflicts, type PlanAction } from "@/lib/plan";
 
 // La IA se llama a través de nuestra ruta /api/ai (src/app/api/ai+api.ts), que guarda la key de Groq en el
 // servidor y exige una sesión de Firebase válida. Así la key nunca viaja dentro de la app ni del sitio web.
-// En web y en desarrollo basta la ruta relativa; en la app instalada se usa EXPO_PUBLIC_API_URL (tu dominio).
-const API_URL = `${(process.env.EXPO_PUBLIC_API_URL ?? "").replace(/\/$/, "")}/api/ai`;
 
 export type ChatMessage = {
   role: "user" | "assistant";
@@ -55,13 +54,39 @@ function calendarForNextDays(today: string) {
   }).join("\n");
 }
 
+const eventMinutes = (event: AgendaEvent) => timeToMinutes(event.end) - timeToMinutes(event.start);
+
+// Resumen del día para que la IA pueda platicar de tus actividades: qué está en curso, cuánto dura y qué huecos quedan.
+function describeToday(player: PlayerSnapshot) {
+  const today = player.events.filter((event) => event.date === player.today);
+  const now = player.currentTime;
+  const lines: string[] = [];
+
+  const live = today.find((event) => event.start <= now && now < event.end);
+  if (live) {
+    const elapsed = timeToMinutes(now) - timeToMinutes(live.start);
+    lines.push(`Ahora mismo: ${live.title} (${live.start}-${live.end}), lleva ${formatDuration(elapsed)} de ${formatDuration(eventMinutes(live))}; faltan ${formatDuration(eventMinutes(live) - elapsed)}.`);
+  } else {
+    const next = today.find((event) => event.start > now);
+    lines.push(next ? `Ahora no hay evento. El siguiente es ${next.title} a las ${next.start}.` : "Ya no quedan eventos hoy.");
+  }
+
+  const busy = today.reduce((total, event) => total + eventMinutes(event), 0);
+  lines.push(`Eventos de hoy: ${today.length}, ${formatDuration(busy)} ocupadas en total.`);
+  const free = freeBlocks(today, now > "06:00" ? now : "06:00", "23:00");
+  lines.push(free.length
+    ? `Huecos libres de hoy desde ahora: ${free.map((block) => `${block.start}-${block.end} (${formatDuration(timeToMinutes(block.end) - timeToMinutes(block.start))})`).join(", ")}.`
+    : "No quedan huecos libres de más de 30 min hoy.");
+  return lines.join("\n");
+}
+
 function describePlayer(player: PlayerSnapshot) {
   const stats = statKeys.map((key) => `${key} (${statInfo[key].label}) ${player.stats[key]}`).join(", ");
   const missions = player.missions.length
     ? player.missions.map((mission) => `- id=${mission.id} | ${mission.time} | ${mission.title} | ${mission.stat} | ${mission.xp} EXP | ${mission.completed ? "hecha hoy" : "pendiente"}`).join("\n")
     : "- (sin misiones)";
   const events = player.events.length
-    ? player.events.slice(0, 30).map((event) => `- id=${event.id} | ${event.date} ${event.start}-${event.end} | ${event.title}${event.location ? ` | ${event.location}` : ""}`).join("\n")
+    ? player.events.slice(0, 40).map((event) => `- id=${event.id} | ${event.date} ${event.start}-${event.end} (${formatDuration(eventMinutes(event))}) | ${event.title}${event.location ? ` | ${event.location}` : ""}${event.source === "calendar" ? " | calendario externo" : ""}`).join("\n")
     : "- (sin eventos)";
 
   return `Jugador: ${player.name}
@@ -74,7 +99,9 @@ ${calendarForNextDays(player.today)}
 Misiones diarias (se repiten todos los días):
 ${missions}
 Eventos de agenda (fechas concretas):
-${events}`;
+${events}
+Hoy:
+${describeToday(player)}`;
 }
 
 const PERSONA = `Eres "el Sistema", la interfaz de Solo Leveling que guía al Jugador en una app real de hábitos.
@@ -90,6 +117,13 @@ describa su horario o pida organizar/acomodar su día o semana:
 - Si lo que pide ya existe como misión aunque con otro nombre (gym = Entrenamiento, leer = Lectura, estudiar = Estudio),
   MUEVE esa misión (update) en lugar de crear otra.
 - Usa exactamente los id que aparecen en el estado. Nunca inventes id.
+- Los eventos marcados "calendario externo" vienen de Notion Calendar: nunca uses update_event ni delete_event con ellos;
+  acomoda todo alrededor. Si quiere cambiarlos, dile que lo haga en Notion Calendar y que la app se actualiza sola.
+- Si describe clases o actividades con horario que se repiten (p. ej. "Cálculo lunes y miércoles de 7 a 9"), crea un
+  add_event por cada fecha del calendario de arriba en que caiga.
+- Si te cuenta su rutina o actividades diarias, conviértelas en misiones (hábitos con hora) y los compromisos con
+  horario fijo en eventos, sin duplicar lo que ya existe.
+- Si pregunta qué tiene hoy, cuánto dura algo o cuánto tiempo libre le queda, usa la sección "Hoy" del estado.
 - Si lo que cuenta choca con un evento que ya existe, dilo en "reply" y pregunta qué prefiere, sin borrar nada por tu cuenta.
 - Si el Jugador solo conversa o pregunta algo, responde con "actions": [].
 - En "reply" explica en pocas frases qué propones y por qué (máximo 120 palabras, texto plano sin markdown ni asteriscos).
@@ -105,8 +139,6 @@ Acciones posibles (horas en formato HH:MM de 24 h, fechas YYYY-MM-DD):
 {"type":"update_event","id":"...","title":"opcional","date":"opcional","start":"opcional","end":"opcional","location":"opcional"}
 {"type":"delete_event","id":"..."}`;
 
-export class AiError extends Error {}
-
 type AiRequest = {
   messages: { role: "system" | "user" | "assistant"; content: string }[];
   json: boolean;
@@ -115,40 +147,11 @@ type AiRequest = {
 };
 
 async function callAi(request: AiRequest) {
-  const user = firebaseAuth.currentUser;
-  if (!user) throw new AiError("Tu sesión expiró. Vuelve a ingresar.");
-
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 35_000);
-
-  try {
-    const response = await fetch(API_URL, {
-      method: "POST",
-      signal: controller.signal,
-      headers: {
-        Authorization: `Bearer ${await user.getIdToken()}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(request),
-    });
-
-    const data = await response.json().catch(() => null) as { content?: unknown; error?: unknown } | null;
-    if (!response.ok) {
-      throw new AiError(typeof data?.error === "string" ? data.error : `La IA respondió con un error (HTTP ${response.status}).`);
-    }
-    if (typeof data?.content !== "string" || !data.content.trim()) {
-      throw new AiError("La IA no devolvió respuesta. Inténtalo de nuevo.");
-    }
-    return data.content.trim();
-  } catch (error) {
-    if (error instanceof AiError) throw error;
-    if (error instanceof Error && error.name === "AbortError") {
-      throw new AiError("La IA tardó demasiado en responder.");
-    }
-    throw new AiError("No se pudo conectar con la IA. Revisa tu conexión.");
-  } finally {
-    clearTimeout(timeout);
+  const data = await postWithSession("/api/ai", request, 35_000, "La IA");
+  if (typeof data.content !== "string" || !data.content.trim()) {
+    throw new ApiError("La IA no devolvió respuesta. Inténtalo de nuevo.");
   }
+  return data.content.trim();
 }
 
 export async function askSystem(history: ChatMessage[], player: PlayerSnapshot): Promise<SystemReply> {
@@ -201,7 +204,7 @@ Responde SOLO con JSON con esta forma exacta:
 
   const parsed = parseJsonObject(content);
   if (!parsed || !Array.isArray(parsed.missions)) {
-    throw new AiError("La IA devolvió un formato inesperado. Inténtalo de nuevo.");
+    throw new ApiError("La IA devolvió un formato inesperado. Inténtalo de nuevo.");
   }
 
   return parsed.missions

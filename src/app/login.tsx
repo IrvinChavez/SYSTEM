@@ -1,14 +1,17 @@
 import { Link } from "expo-router";
 import { useState } from "react";
-import { StyleSheet, Text } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { AuthFrame, FormError } from "@/components/auth-form";
-import { PrimaryButton, TextField } from "@/components/ui";
+import { Chip, PrimaryButton, TextField } from "@/components/ui";
 import { systemColors } from "@/constants/system-colors";
 import { authErrorMessage, useAuth } from "@/context/auth-context";
+import { useBiometrics } from "@/lib/use-biometrics";
 import { signupOpen } from "@/lib/username";
 
 export default function LoginScreen() {
-  const { login } = useAuth();
+  const { loginWithPassword, loginWithBiometrics } = useAuth();
+  const { support, savedUsername } = useBiometrics();
+  const [enableBiometrics, setEnableBiometrics] = useState(true);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -23,13 +26,28 @@ export default function LoginScreen() {
     setSubmitting(true);
     setError(null);
     try {
-      await login(username, password);
+      // Se ofrece activar la huella si el teléfono la tiene y aún no está activa para este usuario.
+      const offerBiometrics = support.available && enableBiometrics && savedUsername !== username.trim().toLowerCase();
+      await loginWithPassword(username, password, offerBiometrics);
       // El guard de _layout.tsx redirige a las pestañas cuando cambia el usuario.
     } catch (reason) {
       setError(authErrorMessage(reason));
       setSubmitting(false);
     }
   };
+
+  const handleBiometricLogin = async () => {
+    setSubmitting(true);
+    setError(null);
+    try {
+      await loginWithBiometrics();
+    } catch (reason) {
+      setError(authErrorMessage(reason));
+      setSubmitting(false);
+    }
+  };
+
+  const showBiometricLogin = support.available && !!savedUsername;
 
   return (
     <AuthFrame
@@ -41,6 +59,16 @@ export default function LoginScreen() {
         </Link>
       ) : null}
     >
+      {showBiometricLogin ? (
+        <>
+          <PrimaryButton label={`ENTRAR CON ${support.label.toUpperCase()} · @${savedUsername}`} onPress={handleBiometricLogin} loading={submitting} />
+          <View style={styles.divider}>
+            <View style={styles.line} />
+            <Text style={styles.dividerText}>o con contraseña</Text>
+            <View style={styles.line} />
+          </View>
+        </>
+      ) : null}
       <TextField
         label="NOMBRE DE USUARIO"
         value={username}
@@ -61,8 +89,13 @@ export default function LoginScreen() {
         textContentType="password"
         onSubmitEditing={handleLogin}
       />
+      {support.available && !showBiometricLogin ? (
+        <View style={styles.option}>
+          <Chip label={`${enableBiometrics ? "✓ " : ""}Activar ingreso con ${support.label}`} selected={enableBiometrics} onPress={() => setEnableBiometrics(!enableBiometrics)} />
+        </View>
+      ) : null}
       <FormError message={error} />
-      <PrimaryButton label="INGRESAR" onPress={handleLogin} loading={submitting} />
+      <PrimaryButton label="INGRESAR" variant={showBiometricLogin ? "outline" : "primary"} onPress={handleLogin} loading={submitting} />
     </AuthFrame>
   );
 }
@@ -71,6 +104,23 @@ const styles = StyleSheet.create({
   link: {
     color: systemColors.textMuted,
     fontSize: 14,
+  },
+  divider: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  line: {
+    flex: 1,
+    height: 1,
+    backgroundColor: systemColors.border,
+  },
+  dividerText: {
+    color: systemColors.textFaint,
+    fontSize: 11,
+  },
+  option: {
+    flexDirection: "row",
   },
   linkStrong: {
     color: systemColors.accent,

@@ -2,11 +2,13 @@ import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import { Avatar } from "@/components/avatar";
+import { LiveEventCard, timingLabel } from "@/components/event-timer";
 import { MissionRow } from "@/components/mission-row";
 import { Card, Icon, IconName, LineIcon, ProgressBar, Screen, SectionHeading } from "@/components/ui";
-import { systemColors } from "@/constants/system-colors";
+import { glow, systemColors } from "@/constants/system-colors";
 import { usePlayer } from "@/context/player-context";
-import { currentTime, greetingForNow } from "@/lib/dates";
+import { eventTiming, greetingForNow } from "@/lib/dates";
+import { useNow } from "@/lib/use-now";
 
 const images = {
   banner: require("@/assets/images/player-banner.png"),
@@ -76,6 +78,8 @@ export default function HomeScreen() {
   const router = useRouter();
   const { loading, error, missions, completedCount, todayEvents, weeklyProgress, streak, profile } = usePlayer();
   const openForm = (pathname: "/missions" | "/agenda") => router.navigate({ pathname, params: { nuevo: String(Date.now()) } });
+  // Se refresca cada 30 s para que la tarjeta "en curso" aparezca y desaparezca sola.
+  const clock = useNow(30_000);
 
   if (loading && !error) {
     return (
@@ -86,8 +90,9 @@ export default function HomeScreen() {
     );
   }
 
-  const now = currentTime();
-  const nextEvent = todayEvents.find((event) => event.end >= now) ?? todayEvents[0];
+  const liveEvent = todayEvents.find((event) => eventTiming(event, clock).status === "live");
+  const nextEvent = todayEvents.find((event) => eventTiming(event, clock).status === "upcoming") ?? (liveEvent ? undefined : todayEvents.at(-1));
+  const askAboutDay = (prompt: string) => router.navigate({ pathname: "/system", params: { prompt, t: String(Date.now()) } });
   const pending = missions.length - completedCount;
 
   return (
@@ -108,6 +113,13 @@ export default function HomeScreen() {
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
       <PlayerCard />
+
+      {liveEvent ? (
+        <LiveEventCard
+          event={liveEvent}
+          onAsk={() => askAboutDay(`Estoy en ${liveEvent.title} (${liveEvent.start}–${liveEvent.end}). ¿Qué sigue en mi día y cómo aprovecho el tiempo libre?`)}
+        />
+      ) : null}
 
       <View>
         <Text style={styles.groupTitle}>¿QUÉ QUIERES HACER?</Text>
@@ -167,7 +179,7 @@ export default function HomeScreen() {
 
       <View style={styles.eventMotivationRow}>
         <Pressable style={({ pressed }) => [styles.eventCard, pressed && styles.pressed]} onPress={() => router.navigate("/agenda")}>
-          <SectionHeading icon="□" title="PRÓXIMO EVENTO" />
+          <SectionHeading icon="□" title={liveEvent && !nextEvent ? "DESPUÉS" : "PRÓXIMO EVENTO"} />
           {nextEvent ? (
             <View style={styles.eventBody}>
               <View style={styles.eventTimeColumn}>
@@ -178,12 +190,13 @@ export default function HomeScreen() {
               <View style={styles.eventInfo}>
                 <Text style={styles.eventTitle} numberOfLines={2}>{nextEvent.title}</Text>
                 {nextEvent.location ? <Text style={styles.eventLocation}>⌖ {nextEvent.location}</Text> : null}
-                <Text style={styles.eventCategory}>{nextEvent.category}</Text>
+                <Text style={styles.eventDuration}>{timingLabel(nextEvent, clock)}</Text>
+                <Text style={styles.eventCategory}>{nextEvent.source === "calendar" ? `${nextEvent.category} · NOTION` : nextEvent.category}</Text>
               </View>
               <Text style={styles.arrow}>›</Text>
             </View>
           ) : (
-            <Text style={styles.noEvent}>Sin eventos hoy. Toca para agregar uno.</Text>
+            <Text style={styles.noEvent}>{liveEvent ? "Nada más después de este evento." : "Sin eventos hoy. Toca para agregar uno."}</Text>
           )}
         </Pressable>
         <View style={styles.dayCard}>
@@ -299,7 +312,7 @@ const styles = StyleSheet.create({
     fontSize: 40,
     fontWeight: "700",
     lineHeight: 45,
-    textShadowColor: "#315EA8",
+    textShadowColor: glow(0.9),
     textShadowRadius: 10,
   },
   experienceTrack: {
@@ -529,11 +542,17 @@ const styles = StyleSheet.create({
     color: systemColors.textMuted,
     fontSize: 10,
   },
+  eventDuration: {
+    color: systemColors.accent,
+    fontSize: 10,
+    fontWeight: "600",
+    marginTop: 4,
+  },
   eventCategory: {
     alignSelf: "flex-start",
     color: systemColors.accent,
     fontSize: 8,
-    backgroundColor: "#17325A",
+    backgroundColor: systemColors.primarySoft,
     borderRadius: 4,
     paddingHorizontal: 5,
     paddingVertical: 3,
@@ -551,7 +570,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: systemColors.border,
     borderRadius: 15,
-    backgroundColor: "#101E32",
+    backgroundColor: systemColors.cardAlt,
     padding: 13,
     justifyContent: "flex-end",
   },

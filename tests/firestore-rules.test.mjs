@@ -50,6 +50,9 @@ await check("crear evento", setDoc(doc(db, "users/alice/events/e1"), { ...event,
 await check("cambiar foto (30 KB)", setDoc(doc(db, "users/alice"), { photo: "data:image/jpeg;base64," + "A".repeat(30000) }, { merge: true }), "ok");
 await check("quitar foto", setDoc(doc(db, "users/alice"), { photo: null }, { merge: true }), "ok");
 await check("cambiar nombre", setDoc(doc(db, "users/alice"), { name: "Jin-Woo" }, { merge: true }), "ok");
+await check("conectar calendario", setDoc(doc(db, "users/alice"), { calendarUrl: "https://calendar.google.com/calendar/ical/x/private-y/basic.ics" }, { merge: true }), "ok");
+await check("desconectar calendario", setDoc(doc(db, "users/alice"), { calendarUrl: null }, { merge: true }), "ok");
+await check("evento importado del calendario", setDoc(doc(db, "users/alice/events/cal-0123456789abcdef"), { ...event, source: "calendar", syncedAt: serverTimestamp() }), "ok");
 await check("borrar evento", updateDoc(doc(db, "users/alice/events/e1"), { title: "Clase 2" }), "ok");
 
 console.log("Ataques y datos inválidos (deben fallar):");
@@ -62,6 +65,8 @@ await check("misión con hora 25:00", setDoc(doc(db, "users/alice/missions/bad")
 await check("misión con 9999 EXP", setDoc(doc(db, "users/alice/missions/bad"), { ...mission, xp: 9999 }), "fail");
 await check("misión con stat inventada", setDoc(doc(db, "users/alice/missions/bad"), { ...mission, stat: "GOD" }), "fail");
 await check("evento que termina antes de empezar", setDoc(doc(db, "users/alice/events/bad"), { ...event, end: "07:00" }), "fail");
+await check("enlace de calendario gigante", setDoc(doc(db, "users/alice"), { calendarUrl: "https://" + "a".repeat(2000) }, { merge: true }), "fail");
+await check("evento con origen inventado", setDoc(doc(db, "users/alice/events/bad"), { ...event, source: "hack" }), "fail");
 await check("colección desconocida", setDoc(doc(db, "users/alice/hack/x"), { a: 1 }), "fail");
 await check("progreso con id de fecha inválido", setDoc(doc(db, "users/alice/dailyProgress/hola"), { completedMissionIds: [], totalMissions: 1 }), "fail");
 
