@@ -1,0 +1,9 @@
+# Nunca subir secretos locales ni artefactos: las variables del servidor se configuran en el panel de Vercel.
+.env.local
+.env*.local
+node_modules
+dist
+example
+.expo
+tests
+*-debug.log

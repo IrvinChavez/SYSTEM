@@ -1,0 +1,16 @@
+export const systemColors = {
+  background: "#050914",
+  backgroundRaised: "#080F1C",
+  card: "#0B1220",
+  cardAlt: "#101A2B",
+  border: "#1E3557",
+  borderMuted: "#172944",
+  primary: "#4D8DFF",
+  accent: "#70A7FF",
+  text: "#EAF1FF",
+  textMuted: "#8D9CB8",
+  textFaint: "#60708D",
+  success: "#65D6A0",
+  warning: "#F2C46D",
+  danger: "#FF6B81",
+};

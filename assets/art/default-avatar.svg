@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="40%" r="70%">
+      <stop offset="0" stop-color="#1d3a78"/>
+      <stop offset="1" stop-color="#070d1c"/>
+    </radialGradient>
+    <filter id="glow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="3"/></filter>
+  </defs>
+  <rect width="256" height="256" fill="url(#bg)"/>
+  <path fill="#02050b" d="M40,256 C44,200 80,176 128,176 C176,176 212,200 216,256 Z"/>
+  <path fill="#02050b" stroke="#70A7FF" stroke-opacity="0.6" stroke-width="2"
+    d="M88,120 L78,104 L88,104 L76,78 L96,86 L94,58 L112,78 L120,50 L130,76 L144,52 L148,80 L166,62 L162,90 L180,84 L168,108 L176,112 L166,122 C166,150 150,170 128,170 C106,170 90,150 88,120 Z"/>
+  <ellipse cx="114" cy="130" rx="9" ry="4" fill="#4D8DFF" filter="url(#glow)"/>
+  <ellipse cx="142" cy="130" rx="9" ry="4" fill="#4D8DFF" filter="url(#glow)"/>
+  <ellipse cx="114" cy="130" rx="6" ry="2" fill="#e3f1ff"/>
+  <ellipse cx="142" cy="130" rx="6" ry="2" fill="#e3f1ff"/>
+</svg>

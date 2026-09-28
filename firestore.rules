@@ -1,0 +1,70 @@
+rules_version = '2';
+
+// Cada jugador solo puede leer y escribir sus propios datos, y solo con el formato que usa la app.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    function isText(value, maxLength) {
+      return value is string && value.size() <= maxLength;
+    }
+
+    function isTime(value) {
+      return value is string && value.matches('^([01][0-9]|2[0-3]):[0-5][0-9]$');
+    }
+
+    function isDateKey(value) {
+      return value is string && value.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$');
+    }
+
+    function isStat(value) {
+      return value in ['STR', 'INT', 'VIT', 'AGI', 'PER'];
+    }
+
+    match /users/{userId} {
+      allow read, delete: if isOwner(userId);
+      allow create, update: if isOwner(userId) && isValidProfile(request.resource.data);
+
+      function isValidProfile(data) {
+        return isText(data.name, 40) && data.name.size() > 0
+          && data.totalXp is int
+          && data.stats is map
+          // La foto es un data URI JPEG de 256 px (~20-40 KB); 300 KB deja margen sin permitir abusos.
+          && (!('photo' in data) || data.photo == null || isText(data.photo, 300000));
+      }
+
+      match /missions/{missionId} {
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId)
+          && isText(request.resource.data.title, 60) && request.resource.data.title.size() > 0
+          && isTime(request.resource.data.time)
+          && request.resource.data.xp in [10, 20, 35, 50]
+          && isStat(request.resource.data.stat)
+          && isText(request.resource.data.icon, 8);
+      }
+
+      match /events/{eventId} {
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId)
+          && isText(request.resource.data.title, 60) && request.resource.data.title.size() > 0
+          && isDateKey(request.resource.data.date)
+          && isTime(request.resource.data.start)
+          && isTime(request.resource.data.end)
+          && request.resource.data.end > request.resource.data.start
+          && isText(request.resource.data.location, 60)
+          && isText(request.resource.data.category, 20);
+      }
+
+      match /dailyProgress/{dateKey} {
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId)
+          && isDateKey(dateKey)
+          && request.resource.data.completedMissionIds is list
+          && request.resource.data.completedMissionIds.size() <= 100
+          && request.resource.data.totalMissions is int;
+      }
+    }
+  }
+}

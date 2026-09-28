@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 720" width="720" height="720">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="42%" r="70%">
+      <stop offset="0" stop-color="#1b3a7a"/>
+      <stop offset="0.45" stop-color="#0b1633"/>
+      <stop offset="1" stop-color="#03060e"/>
+    </radialGradient>
+    <linearGradient id="armor" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#101d38"/>
+      <stop offset="1" stop-color="#020409"/>
+    </linearGradient>
+    <linearGradient id="ray" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#70A7FF" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="#70A7FF" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="blur8" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="8"/></filter>
+    <filter id="blur18" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="18"/></filter>
+    <filter id="glow" x="-200%" y="-200%" width="500%" height="500%"><feGaussianBlur stdDeviation="6"/></filter>
+  </defs>
+
+  <rect width="720" height="720" fill="url(#bg)"/>
+
+  <!-- rayos de luz -->
+  <g opacity="0.8">
+    <polygon points="360,120 300,720 330,720" fill="url(#ray)"/>
+    <polygon points="360,120 390,720 430,720" fill="url(#ray)"/>
+    <polygon points="360,120 160,720 200,720" fill="url(#ray)" opacity="0.6"/>
+    <polygon points="360,120 540,720 590,720" fill="url(#ray)" opacity="0.6"/>
+    <polygon points="360,120 40,640 60,680" fill="url(#ray)" opacity="0.4"/>
+    <polygon points="360,120 680,640 660,690" fill="url(#ray)" opacity="0.4"/>
+  </g>
+
+  <!-- círculo rúnico -->
+  <g fill="none" stroke="#4D8DFF" opacity="0.35">
+    <circle cx="360" cy="300" r="215" stroke-width="2"/>
+    <circle cx="360" cy="300" r="190" stroke-width="1" stroke-dasharray="4 10"/>
+    <circle cx="360" cy="300" r="245" stroke-width="1" stroke-dasharray="30 12 4 12"/>
+  </g>
+
+  <!-- aura de sombras -->
+  <path filter="url(#blur18)" fill="#5a3fd1" opacity="0.55"
+    d="M360,120 L395,190 L450,150 L445,230 L530,210 L490,290 L590,300 L520,360 L640,420 L560,450 L680,560 L560,560 L640,720 L80,720 L160,560 L40,560 L160,450 L80,420 L200,360 L130,300 L230,290 L190,210 L275,230 L270,150 L325,190 Z"/>
+  <path filter="url(#blur8)" fill="#2c5bd6" opacity="0.5"
+    d="M360,165 L385,215 L430,190 L425,250 L495,240 L460,300 L540,320 L480,370 L580,440 L500,460 L600,580 L120,580 L220,460 L140,440 L240,370 L180,320 L260,300 L225,240 L295,250 L290,190 L335,215 Z"/>
+
+  <!-- cuerpo / armadura -->
+  <path fill="url(#armor)" stroke="#4D8DFF" stroke-opacity="0.55" stroke-width="2"
+    d="M360,370 C330,372 300,380 270,392 L210,410 L150,398 L178,440 C140,470 118,520 104,580 L90,720 L630,720 L616,580 C602,520 580,470 542,440 L570,398 L510,410 L450,392 C420,380 390,372 360,370 Z"/>
+  <!-- hombreras con púas -->
+  <path fill="#070d1c" stroke="#70A7FF" stroke-opacity="0.6" stroke-width="2"
+    d="M270,392 L200,396 L120,360 L168,420 L130,430 L190,452 L250,440 Z"/>
+  <path fill="#070d1c" stroke="#70A7FF" stroke-opacity="0.6" stroke-width="2"
+    d="M450,392 L520,396 L600,360 L552,420 L590,430 L530,452 L470,440 Z"/>
+  <!-- cuello de la capa -->
+  <path fill="#040914" stroke="#4D8DFF" stroke-opacity="0.45" stroke-width="1.5"
+    d="M300,372 L286,440 L360,500 L434,440 L420,372 Q360,400 300,372 Z"/>
+  <!-- líneas de la armadura -->
+  <g stroke="#4D8DFF" stroke-opacity="0.35" stroke-width="1.5" fill="none">
+    <path d="M360,500 L360,720"/>
+    <path d="M286,440 L230,560 L250,720"/>
+    <path d="M434,440 L490,560 L470,720"/>
+    <path d="M300,560 L360,600 L420,560"/>
+  </g>
+
+  <!-- capa ondeando -->
+  <path fill="#02050b" opacity="0.9"
+    d="M200,410 C150,470 110,560 60,720 L150,720 C170,600 200,520 240,450 Z"/>
+  <path fill="#02050b" opacity="0.9"
+    d="M520,410 C570,470 610,560 660,720 L570,720 C550,600 520,520 480,450 Z"/>
+
+  <!-- cuello -->
+  <path fill="#04080f" d="M334,340 L330,392 L360,410 L390,392 L386,340 Z"/>
+
+  <!-- cabeza -->
+  <path fill="none" stroke="#70A7FF" stroke-opacity="0.55" stroke-width="2"
+    d="M321,284 C322,312 326,336 336,352 C346,366 354,372 360,374 C366,372 374,366 384,352 C394,336 398,312 399,284"/>
+  <path fill="#05080f"
+    d="M320,246 C318,300 322,332 336,352 C346,366 354,372 360,374 C366,372 374,366 384,352 C398,332 402,300 400,246 Z"/>
+
+  <!-- cabello en picos -->
+  <path fill="#02040a" stroke="#70A7FF" stroke-opacity="0.75" stroke-width="2.5" stroke-linejoin="round"
+    d="M310,300 L296,282 L306,276 L286,248 L304,248 L290,214 L316,226 L312,186 L336,210 L344,172 L360,204 L378,170 L386,208 L410,184 L406,224 L432,210 L418,246 L436,246 L416,276 L426,282 L410,300 L402,250 L318,250 Z"/>
+  <!-- mechones sobre la frente -->
+  <path fill="#02040a" d="M312,244 L408,244 L404,258 L394,258 L382,292 L372,260 L360,304 L348,260 L338,292 L326,258 L316,258 Z"/>
+
+  <!-- ojos brillantes -->
+  <g>
+    <ellipse cx="342" cy="306" rx="16" ry="7" fill="#4D8DFF" filter="url(#glow)" opacity="0.95"/>
+    <ellipse cx="378" cy="306" rx="16" ry="7" fill="#4D8DFF" filter="url(#glow)" opacity="0.95"/>
+    <path d="M330,306 Q342,299 353,308 Q342,309 330,306 Z" fill="#dff0ff"/>
+    <path d="M390,306 Q378,299 367,308 Q378,309 390,306 Z" fill="#dff0ff"/>
+  </g>
+
+  <!-- partículas -->
+  <g fill="#9cc4ff">
+    <circle cx="150" cy="200" r="2.5" opacity="0.8"/>
+    <circle cx="590" cy="170" r="2" opacity="0.7"/>
+    <circle cx="620" cy="300" r="3" opacity="0.6"/>
+    <circle cx="100" cy="330" r="2" opacity="0.6"/>
+    <circle cx="250" cy="120" r="1.8" opacity="0.8"/>
+    <circle cx="480" cy="110" r="2.2" opacity="0.8"/>
+    <circle cx="200" cy="600" r="2" opacity="0.5"/>
+    <circle cx="540" cy="620" r="2.4" opacity="0.5"/>
+  </g>
+</svg>
