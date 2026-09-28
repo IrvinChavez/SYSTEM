@@ -39,13 +39,21 @@
         "expo-image-picker",
         {
           "photosPermission": "SYSTEM necesita acceso a tus fotos para cambiar tu foto de perfil.",
-          "cameraPermission": "SYSTEM necesita la cámara para tomar tu foto de perfil."
+          "cameraPermission": "SYSTEM necesita la cámara para tomar tu foto de perfil.",
+          "microphonePermission": false
         }
       ]
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "5ba9bcff-a486-4e72-b229-39904d43b183"
+      }
+    },
+    "owner": "irvinchavs"
   }
 }
