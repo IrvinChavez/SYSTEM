@@ -106,7 +106,7 @@ export function CalendarConnectCard() {
 
 const styles = StyleSheet.create({
   connected: {
-    borderColor: systemColors.primary,
+    borderColor: systemColors.border,
   },
   text: {
     color: systemColors.textMuted,

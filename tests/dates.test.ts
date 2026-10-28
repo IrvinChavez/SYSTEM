@@ -1,7 +1,7 @@
 /// <reference types="node" />
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { eventTiming, formatClock, formatDuration, freeBlocks } from "@/lib/dates";
+import { eventTiming, formatClock, formatDuration, freeBlocks, isValidDateKey } from "@/lib/dates";
 
 const calculo = { date: "2026-09-28", start: "07:00", end: "09:00" };
 const at = (time: string) => new Date(`2026-09-28T${time}`);
@@ -17,6 +17,14 @@ test("formatClock", () => {
   assert.equal(formatClock(0), "00:00");
   assert.equal(formatClock(65), "01:05");
   assert.equal(formatClock(2 * 3600 + 37 * 60 + 12), "02:37:12");
+});
+
+test("isValidDateKey: valida fechas locales sin aceptar días imposibles", () => {
+  assert.equal(isValidDateKey("2026-10-27"), true);
+  assert.equal(isValidDateKey("2024-02-29"), true);
+  assert.equal(isValidDateKey("2026-02-29"), false);
+  assert.equal(isValidDateKey("2026-13-01"), false);
+  assert.equal(isValidDateKey("27-10-2026"), false);
 });
 
 test("eventTiming: el contador arranca en cero al empezar la clase", () => {

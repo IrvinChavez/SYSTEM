@@ -1,12 +1,12 @@
 import { useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
-import { FieldGroup, FormSheet } from "@/components/form-sheet";
+import { FormSheet } from "@/components/form-sheet";
 import { MissionRow } from "@/components/mission-row";
-import { ActionPill, Card, Chip, EmptyState, IconButton, PrimaryButton, ProgressBar, Screen, ScreenHeader, SectionHeading, TextField } from "@/components/ui";
+import { ActionPill, Card, EmptyState, IconButton, PrimaryButton, ProgressBar, Screen, ScreenHeader, SectionHeading, TextField } from "@/components/ui";
 import { systemColors } from "@/constants/system-colors";
 import { DailyMission, usePlayer } from "@/context/player-context";
-import { difficultyOptions, Mission, missionIcons, StatKey, statInfo, statKeys } from "@/data/system-data";
+import { Mission, missionIcons } from "@/data/system-data";
 import { confirmAction, syncInBackground } from "@/lib/confirm";
 import { isValidTime } from "@/lib/dates";
 import { addMission, deleteMission, updateMission } from "@/services/player-service";
@@ -61,35 +61,32 @@ export default function MissionsScreen() {
   };
 
   const handleDelete = (mission: DailyMission) => {
-    confirmAction("Eliminar misión", `¿Eliminar "${mission.title}"? La EXP ya ganada se conserva.`, "Eliminar", () => {
+    confirmAction("Eliminar hábito", `¿Eliminar "${mission.title}"? El historial ya registrado se conserva.`, "Eliminar", () => {
       syncInBackground(deleteMission(uid, mission.id), "No se pudo eliminar la misión.");
     });
   };
 
-  const earnedToday = missions.filter((mission) => mission.completed).reduce((total, mission) => total + mission.xp, 0);
-  const availableToday = missions.reduce((total, mission) => total + mission.xp, 0);
-
   return (
     <Screen>
       <ScreenHeader
-        title="MISIONES"
-        subtitle="Toca una misión para completarla. Se reinician a medianoche."
+        title="Hábitos"
+        subtitle="Registra lo que sí quieres repetir. El seguimiento se reinicia a medianoche."
         action={<ActionPill icon="add" label="Nueva" onPress={openNew} />}
       />
 
       <Card>
-        <SectionHeading icon="✦" title="RECOMPENSA DE HOY" trailing={`${earnedToday}/${availableToday} EXP`} />
+        <SectionHeading icon="repeat-outline" title="CONSISTENCIA DE HOY" trailing={`${completedCount}/${missions.length}`} />
         <View style={styles.rewardTrack}>
-          <ProgressBar progress={availableToday ? earnedToday / availableToday : 0} height={6} />
+          <ProgressBar progress={missions.length ? completedCount / missions.length : 0} height={6} />
         </View>
-        <Text style={styles.helper}>{completedCount} de {missions.length} misiones completadas</Text>
+        <Text style={styles.helper}>{completedCount} de {missions.length} hábitos registrados hoy</Text>
       </Card>
 
       <Card>
-        <SectionHeading icon="✓" title="MISIÓN DIARIA" trailing={`${missions.length}`} />
+        <SectionHeading icon="checkmark-circle-outline" title="TUS HÁBITOS" trailing={`${missions.length}`} />
         <View style={styles.list}>
           {missions.length === 0 ? (
-            <EmptyState icon="✓" title="Sin misiones" text="Crea tu primera misión con el botón Nueva o pídesela a la IA." />
+            <EmptyState icon="repeat-outline" title="Sin hábitos por ahora" text="Empieza con una acción pequeña y sostenible. Puedes ajustar su hora cuando cambie tu rutina." />
           ) : missions.map((mission) => (
             <MissionRow
               key={mission.id}
@@ -105,28 +102,13 @@ export default function MissionsScreen() {
         </View>
       </Card>
 
-      <PrimaryButton label="＋ NUEVA MISIÓN" variant="outline" onPress={openNew} />
+      <PrimaryButton label="AGREGAR HÁBITO" variant="outline" onPress={openNew} />
 
-      <FormSheet visible={formVisible} title={editingId ? "EDITAR MISIÓN" : "NUEVA MISIÓN"} onClose={() => setFormVisible(false)}>
-        <TextField label="NOMBRE" value={draft.title} onChangeText={(title) => setDraft({ ...draft, title })} placeholder="Ej. Correr 3 km" maxLength={40} />
+      <FormSheet visible={formVisible} title={editingId ? "Editar hábito" : "Nuevo hábito"} onClose={() => setFormVisible(false)}>
+        <TextField label="HÁBITO" value={draft.title} onChangeText={(title) => setDraft({ ...draft, title })} placeholder="Ej. Caminar 15 minutos" maxLength={40} />
         <TextField label="HORA (HH:MM)" value={draft.time} onChangeText={(time) => setDraft({ ...draft, time })} placeholder="07:30" keyboardType="numbers-and-punctuation" maxLength={5} />
-        <FieldGroup label="DIFICULTAD">
-          {difficultyOptions.map((option) => (
-            <Chip key={option.xp} label={`${option.label} · ${option.xp} EXP`} selected={draft.xp === option.xp} onPress={() => setDraft({ ...draft, xp: option.xp })} />
-          ))}
-        </FieldGroup>
-        <FieldGroup label="ESTADÍSTICA QUE ENTRENA">
-          {statKeys.map((stat: StatKey) => (
-            <Chip key={stat} label={`${statInfo[stat].icon} ${statInfo[stat].label}`} selected={draft.stat === stat} onPress={() => setDraft({ ...draft, stat })} />
-          ))}
-        </FieldGroup>
-        <FieldGroup label="ÍCONO">
-          {missionIcons.map((icon) => (
-            <Chip key={icon} label={icon} selected={draft.icon === icon} onPress={() => setDraft({ ...draft, icon })} />
-          ))}
-        </FieldGroup>
         {error ? <Text style={styles.error}>{error}</Text> : null}
-        <PrimaryButton label={editingId ? "GUARDAR CAMBIOS" : "CREAR MISIÓN"} onPress={handleSave} />
+        <PrimaryButton label={editingId ? "GUARDAR CAMBIOS" : "CREAR HÁBITO"} onPress={handleSave} />
       </FormSheet>
     </Screen>
   );

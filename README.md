@@ -1,6 +1,6 @@
-# SYSTEM — Hábitos estilo Solo Leveling
+# SYSTEM — Organización personal
 
-**SYSTEM** es una app móvil y web para construir hábitos convirtiéndolos en un juego de rol. Inspirada en *Solo Leveling*, cada hábito diario es una **misión**: al completarla ganas EXP, subes de nivel y de rango (E → S) y entrenas cinco estadísticas (Fuerza, Inteligencia, Vitalidad, Agilidad y Percepción). Un asistente con IA, "el Sistema", conoce tu progreso y tu agenda, y **acomoda tus misiones y eventos a tu horario** cuando le cuentas lo que quieres hacer.
+**SYSTEM** es una aplicación de organización personal para web, Android e iOS. Reúne tareas, proyectos, metas, notas, hábitos y agenda; ofrece una vista diaria clara y un asistente de IA que pregunta antes de planificar y propone cambios para que la persona los revise. La interfaz mantiene una paleta oscura y usa lavanda solo para acciones y estados seleccionados.
 
 > Proyecto de la materia Aplicaciones Móviles (DS42M, Unidad 2 — Conexiones): autenticación, base de datos en la nube y consumo de APIs externas.
 
@@ -8,28 +8,31 @@
 
 ## ¿Qué problema resuelve?
 
-Mantener hábitos es difícil porque el progreso es invisible y el día a día se desordena. SYSTEM:
+SYSTEM ayuda a mantener una visión realista del día y evita depender de una agenda genérica:
 
-1. **Hace visible el progreso**: EXP, niveles, rangos, rachas de días perfectos y porcentaje semanal.
-2. **Da una recompensa inmediata** al marcar cada misión, con subida de nivel incluida.
-3. **Organiza el día**: agenda de clases/trabajo y una IA que reacomoda tus hábitos alrededor de tus compromisos, sin choques de horario.
+1. **Muestra primero** prioridades, compromisos próximos y hábitos del día.
+2. **Separa** tareas, proyectos, metas y notas para dar seguimiento sin inventar fechas ni avances.
+3. **Sincroniza** los datos de la cuenta entre web y móvil con Firestore.
+4. **Asiste al planificar**: la IA usa el contexto disponible y deja las propuestas bajo control de la persona.
 
 ## Funcionalidades
 
 | Pantalla | Qué hace |
 |---|---|
 | **Ingreso / Registro** | Cuenta con **nombre de usuario y contraseña**, o **registro e ingreso con huella / Face ID** (Android e iOS). La sesión se conserva al cerrar la app. |
-| **Inicio** | Estado del jugador (nivel, EXP, rango), tarjeta **EN CURSO** con cronómetro de la clase actual, accesos rápidos, mensaje del Sistema, misión diaria, resumen y próximo evento. |
-| **Misiones** | Crear, editar y eliminar hábitos (hora, dificultad/EXP, estadística, ícono). Se reinician cada medianoche. |
-| **Agenda** | Eventos de los próximos días (clases, trabajo, exámenes) con su **duración** y un **cronómetro** que arranca en 0 cuando empieza cada evento. Importa tus eventos de **Notion Calendar**. |
-| **IA** | Chat con el Sistema que conoce lo que tienes hoy (qué está en curso, duraciones y huecos libres), con atajos para contarle tus actividades diarias y tu horario de clases. **Propone cambios** (crear/mover/borrar misiones y eventos) que aplicas con un botón, avisando de choques de horario. Genera misiones para la estadística que elijas. Muestra una frase motivacional de una API externa. |
-| **Perfil** | Foto de perfil (galería o cámara), estadísticas, racha, cambiar nombre, **seguridad** (activar/desactivar huella, ver la contraseña guardada), cerrar sesión, **eliminar cuenta** y política de privacidad. |
+| **Inicio** | Fecha, tareas prioritarias, próximos compromisos, progreso de hábitos y accesos a proyectos, metas, notas y asistente. |
+| **Planificar** | Agenda vertical de los próximos días, duración de eventos, temporizador de actividad y conexión opcional con Notion Calendar. |
+| **Tareas** | Crear, editar, priorizar y completar tareas; añadir una fecha solo cuando se conoce, estimación y proyecto asociado. |
+| **Hábitos** | Registrar hábitos diarios y su hora; el seguimiento se reinicia a medianoche. Las cuentas nuevas no reciben rutinas inventadas. |
+| **Proyectos / Metas / Notas** | Guardar resultado esperado y siguiente acción de proyectos, seguimiento de metas a corto/medio/largo plazo, y notas personales. |
+| **Asistente** | Entrevista breve, planificación diaria/semanal, vaciado de pendientes y revisiones. Puede proponer cambios en tareas, hábitos y agenda; la persona los aprueba antes de guardarlos. Las notas no se envían al proveedor de IA. |
+| **Perfil** | Nombre, foto, resumen de tareas/proyectos/metas, cuestionario opcional para conocer rutina y propósitos, consentimiento separado para personalización con IA, seguridad biométrica, cierre y eliminación de cuenta, y política de privacidad. |
 
 ## Tecnologías
 
 | Capa | Tecnología |
 |---|---|
-| App (Android, iOS y web) | [Expo SDK 57](https://docs.expo.dev/versions/v57.0.0/), React Native 0.86, React 19, TypeScript, Expo Router (rutas por archivos) |
+| App (Android, iOS y web) | [Expo SDK 58](https://docs.expo.dev/versions/v58.0.0/), React Native 0.88, React 19.3, TypeScript, Expo Router (rutas por archivos) |
 | Autenticación | Firebase Authentication |
 | Base de datos | Cloud Firestore (tiempo real, con caché local) |
 | IA | [Groq Cloud](https://console.groq.com) — modelo `openai/gpt-oss-120b`, llamado desde una ruta de servidor propia |
@@ -59,15 +62,15 @@ src/
     _layout.tsx              AuthProvider + rutas protegidas (Stack.Protected)
     login.tsx, register.tsx  Ingreso con usuario y contraseña
     privacidad.tsx           Política de privacidad (pública)
-    (tabs)/                  Inicio, Misiones, Agenda, IA (system.tsx), Perfil
+    (tabs)/                  Inicio, Planificar, Tareas, Hábitos, Perfil y rutas secundarias
     api/ai+api.ts            Ruta de SERVIDOR: proxy seguro hacia Groq
     api/calendar+api.ts      Ruta de SERVIDOR: descarga el .ics de tu calendario (hosts permitidos)
   server/                    Código compartido de las rutas /api (verificación de sesión, límite de peticiones)
-  context/                   auth-context (sesión) y player-context (datos en tiempo real)
-  services/                  player-service (Firestore), ai-service (IA), quote-service (API de frases)
+  context/                   auth-context, player-context y organizer-context (datos en tiempo real)
+  services/                  player-service, organizer-service (Firestore), ai-service y quote-service
   lib/                       Lógica pura y probada: niveles, rachas, fechas y duraciones, lector .ics, usuario, validación de la IA
   components/                UI compartida (chat, avatar, formularios, fila de misión…)
-  data/                      Tipos, misiones iniciales y sugeridas
+  data/                      Tipos de tareas, proyectos, metas, notas, eventos y hábitos
 tests/                       Pruebas unitarias y de reglas de Firestore
 assets/art/                  Ilustraciones originales en SVG (fuente de assets/images/)
 firestore.rules              Reglas de seguridad de la base de datos
@@ -82,20 +85,23 @@ users/{uid}                          name, username, photo, calendarUrl, totalXp
 users/{uid}/missions/{id}            title, time, icon, xp, stat
 users/{uid}/events/{id}              title, date, start, end, location, category, source? ("calendar" = importado)
 users/{uid}/dailyProgress/{fecha}    completedMissionIds[], rewards{id:{xp,stat}}, totalMissions
+users/{uid}/tasks/{id}               title, description, status, priority, dueDate?, estimateMinutes?, projectId?
+users/{uid}/projects/{id}            title, purpose, status, nextAction, deadline?
+users/{uid}/goals/{id}               title, measure, nextStep, horizon, targetDate?, status
+users/{uid}/notes/{id}               title, body
+users/{uid}/discovery/profile        rutinas, áreas, objetivos y preferencias de apoyo; permiso de IA explícito
 ```
 
-### Reglas del juego
+### Progreso de hábitos existente
 
-- Subir del nivel *n* al *n+1* cuesta `n × 100` EXP.
-- Rangos: **E** (1–4), **D** (5–9), **C** (10–19), **B** (20–34), **A** (35–49), **S** (50+).
-- Dificultad de misión: Fácil 10 · Normal 20 · Difícil 35 · Élite 50 EXP. Cada misión suma 1 punto a su estadística.
-- **Día perfecto** = todas las misiones completadas; la **racha** cuenta días perfectos seguidos.
+Las cuentas existentes conservan sus hábitos y el progreso histórico: cada hábito mantiene su dificultad/EXP y estadística, y el perfil conserva niveles y rachas. Las cuentas nuevas empiezan sin hábitos precargados; cada quien registra su propia rutina.
 
 ## Decisiones de diseño importantes
 
 - **La key de la IA nunca sale del servidor.** La app llama a `/api/ai` con el token de sesión de Firebase; esa ruta verifica la firma del token con las llaves públicas de Google, limita tamaño y frecuencia de peticiones (20/min por usuario) y solo entonces llama a Groq con `GROQ_API_KEY`.
-- **La IA propone, el usuario decide.** Todo lo que devuelve el modelo se valida en `src/lib/plan.ts`: no acepta ids inventados, horas o fechas inválidas ni valores fuera de rango. Los choques de horario se calculan en código, no se confía en el modelo. Los cambios aprobados se guardan en **una sola escritura atómica**.
-- **Funciona sin conexión.** Firestore aplica cada cambio al instante en caché y lo sincroniza después. Por eso la interfaz **nunca espera** a que el servidor confirme una escritura (`syncInBackground` en `src/lib/confirm.ts`); solo avisa si el servidor la rechaza.
+- **La IA propone, la persona decide.** El contexto y las propuestas se validan en `src/lib/plan.ts`: no acepta ids inventados, horas o fechas inválidas ni valores fuera de rango. Los cambios aprobados se guardan en una escritura atómica.
+- **Personalización voluntaria.** El cuestionario no es una evaluación y se puede omitir, editar o borrar. Sus respuestas se quedan fuera de las peticiones a la IA salvo que la persona active explícitamente el consentimiento; no se piden datos médicos.
+- **Sincronización transparente.** Las ediciones comunes se reflejan en la caché local y se sincronizan en segundo plano (`syncInBackground` en `src/lib/confirm.ts`), con aviso si el servidor las rechaza. Las propuestas del asistente muestran que están guardándose y solo se marcan sincronizadas después de la confirmación del servidor; si fallan, se pueden reintentar.
 - **EXP a prueba de trampas.** Cada día guarda cuánta EXP otorgó cada misión; al desmarcarla se resta exactamente eso, aunque la misión se haya editado después. Las listas se actualizan con `arrayUnion`/`arrayRemove` para que dos toques rápidos no se pisen.
 - **Usuario en lugar de correo.** Firebase Auth solo acepta correos, así que `usuario` se guarda como `usuario@jugadores.system-app.com` de forma invisible. Firebase garantiza que no haya dos usuarios iguales. Las cuentas antiguas con correo pueden seguir entrando escribiendo el correo.
 - **Fotos sin Firebase Storage.** La foto se recorta y reduce a 256 px JPEG (~20 KB) y se guarda en el documento del usuario, así no se necesita el plan de pago de Firebase.
@@ -118,27 +124,25 @@ Firebase Auth no maneja huellas (y la huella nunca sale del teléfono). Lo que h
 - Si agregas o quitas huellas del teléfono, el sistema invalida la llave a propósito: la app la borra y pide entrar con contraseña.
 - Solo Android/iOS (en web no aparece). En iPhone, Face ID no funciona en Expo Go: necesita un development build o el APK/IPA de EAS.
 
-## Paleta "Sistema azul"
+## Tokens visuales
 
-Todos los colores salen de `src/constants/system-colors.ts` (no se escriben hex sueltos en las pantallas):
+Los colores de móvil y web salen de `src/constants/system-colors.ts`:
 
 | Token | Color | Uso |
 |---|---|---|
-| `background` / `backgroundRaised` | `#05070B` / `#0A0E15` | Fondo negro |
-| `card` / `cardAlt` | `#0D121C` / `#121A28` | Tarjetas |
-| `border` / `borderMuted` | `#1C2B45` / `#141F33` | Bordes |
-| `primary` / `primarySoft` | `#2F6BFF` / `#11244A` | Botones, progreso / selección |
-| `accent` | `#5C9DFF` | Íconos, cronómetro, textos destacados |
-| `highlight` | `#38C6E8` | Eventos importados de Notion Calendar |
-| `text` / `textMuted` / `textFaint` | `#EAF1FF` / `#8FA0BD` / `#62728F` | Texto |
-| `success` / `warning` / `danger` | `#65D6A0` / `#F2C46D` / `#FF6B81` | Estados |
+| `background` / `backgroundRaised` | `#121212` / `#1A1A1A` | Fondos |
+| `card` / `cardAlt` | `#242424` / `#2D2D2D` | Tarjetas y elementos elevados |
+| `border` / `borderMuted` | `#3A3A3A` / `#2D2D2D` | Bordes |
+| `primary` / `accent` | `#8B9CF6` | Acciones, selección y enlaces |
+| `text` / `textMuted` / `textFaint` | `#F5F5F5` / `#A3A3A3` / `#707070` | Texto |
+| `success` / `warning` / `danger` | `#6FCF97` / `#E6B566` / `#E57373` | Estados |
 
 ## Cómo correrlo
 
 Requisitos: Node 20+ y un proyecto de Firebase con **Authentication → Correo/contraseña** habilitado y Firestore creado.
 
 ```bash
-npm install --include=dev        # --include=dev por si tu terminal tiene NODE_ENV=production
+npm ci --legacy-peer-deps       # instalación reproducible desde el lockfile
 echo "GROQ_API_KEY=gsk_..." > .env.local   # tu key de https://console.groq.com/keys (.env ya trae Firebase)
 npm start                        # abre con Expo Go (QR), en emulador, o pulsa "w" para web
 ```

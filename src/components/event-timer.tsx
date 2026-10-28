@@ -1,6 +1,6 @@
 import { Pressable, StyleProp, StyleSheet, Text, TextStyle, View } from "react-native";
 import { Icon, ProgressBar } from "@/components/ui";
-import { glow, systemColors } from "@/constants/system-colors";
+import { systemColors } from "@/constants/system-colors";
 import { AgendaEvent } from "@/data/system-data";
 import { eventTiming, formatClock, formatDuration } from "@/lib/dates";
 import { useNow } from "@/lib/use-now";
@@ -60,12 +60,11 @@ export function LiveEventCard({ event, onAsk }: { event: AgendaEvent; onAsk?: ()
 const styles = StyleSheet.create({
   card: {
     borderWidth: 1,
-    borderColor: systemColors.primary,
-    borderRadius: 15,
+    borderColor: systemColors.border,
+    borderRadius: 12,
     backgroundColor: systemColors.card,
     padding: 14,
     gap: 4,
-    boxShadow: `0 0 18px ${glow(0.3)}`,
   },
   header: {
     flexDirection: "row",
@@ -77,7 +76,6 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     backgroundColor: systemColors.accent,
-    boxShadow: `0 0 6px ${glow(0.9)}`,
   },
   tag: {
     flex: 1,
@@ -115,8 +113,6 @@ const styles = StyleSheet.create({
     fontWeight: "300",
     fontVariant: ["tabular-nums"],
     letterSpacing: 1,
-    textShadowColor: glow(0.8),
-    textShadowRadius: 12,
   },
   total: {
     color: systemColors.textMuted,

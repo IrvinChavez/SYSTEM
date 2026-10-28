@@ -1,4 +1,4 @@
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { CalendarConnectCard } from "@/components/calendar-connect";
@@ -20,6 +20,7 @@ const nextDays = () => Array.from({ length: 7 }, (_, index) => toDateKey(addDays
 const newDraft = (): EventDraft => ({ title: "", date: toDateKey(), start: "09:00", end: "10:00", location: "", category: eventCategories[0] });
 
 export default function AgendaScreen() {
+  const router = useRouter();
   const { uid, events } = usePlayer();
   const [formVisible, setFormVisible] = useState(false);
   const [draft, setDraft] = useState<EventDraft>(newDraft);
@@ -73,10 +74,24 @@ export default function AgendaScreen() {
   return (
     <Screen>
       <ScreenHeader
-        title="AGENDA"
-        subtitle="Clases, trabajo y compromisos de los próximos días."
-        action={<ActionPill icon="add" label="Nuevo" onPress={openNew} />}
+        title="Planificar"
+        subtitle="Revisa compromisos, agenda y organiza tu semana."
+        action={(
+          <View style={styles.headerActions}>
+            <IconButton icon="sparkles-outline" label="Abrir asistente personal" onPress={() => router.navigate("/system")} />
+            <ActionPill icon="add" label="Nuevo" onPress={openNew} />
+          </View>
+        )}
       />
+
+      <Card>
+        <SectionHeading icon="layers-outline" title="ORGANIZAR" />
+        <View style={styles.secondaryLinks}>
+          <Chip label="Proyectos" selected={false} onPress={() => router.navigate("/projects")} />
+          <Chip label="Metas" selected={false} onPress={() => router.navigate("/goals")} />
+          <Chip label="Notas" selected={false} onPress={() => router.navigate("/notes")} />
+        </View>
+      </Card>
 
       <CalendarConnectCard />
 
@@ -158,6 +173,17 @@ export default function AgendaScreen() {
 const styles = StyleSheet.create({
   list: {
     gap: 6,
+    marginTop: 10,
+  },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
+  },
+  secondaryLinks: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
     marginTop: 10,
   },
   event: {

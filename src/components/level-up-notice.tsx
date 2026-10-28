@@ -1,27 +1,20 @@
-import { Image } from "expo-image";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
-import { glow, systemColors } from "@/constants/system-colors";
+import { Icon } from "@/components/ui";
+import { systemColors } from "@/constants/system-colors";
 import { usePlayer } from "@/context/player-context";
-import { rankForLevel } from "@/lib/leveling";
 
-const monarch = require("@/assets/images/system-monarch.png");
-
-// Ventana azul del Sistema que aparece al subir de nivel.
 export function LevelUpNotice() {
   const { levelUpNotice, dismissLevelUp } = usePlayer();
   if (levelUpNotice === null) return null;
-
-  const rank = rankForLevel(levelUpNotice);
 
   return (
     <Modal transparent animationType="fade" visible onRequestClose={dismissLevelUp}>
       <Pressable style={styles.backdrop} onPress={dismissLevelUp}>
         <View style={styles.window}>
-          <Image source={monarch} style={styles.image} contentFit="cover" />
-          <Text style={styles.tag}>[ NOTIFICACIÓN ]</Text>
-          <Text style={styles.title}>¡NIVEL AUMENTADO!</Text>
-          <Text style={styles.level}>{levelUpNotice}</Text>
-          <Text style={styles.rank}>Rango {rank.rank} · {rank.title}</Text>
+          <View style={styles.icon}><Icon name="checkmark" size={22} color={systemColors.success} /></View>
+          <Text style={styles.tag}>PROGRESO</Text>
+          <Text style={styles.title}>Vas construyendo constancia</Text>
+          <Text style={styles.body}>Cada hábito registrado cuenta. Sigue a tu ritmo y deja espacio para descansar.</Text>
           <Text style={styles.hint}>Toca para continuar</Text>
         </View>
       </Pressable>
@@ -42,46 +35,42 @@ const styles = StyleSheet.create({
     maxWidth: 360,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: systemColors.accent,
-    borderRadius: 14,
+    borderColor: systemColors.border,
+    borderRadius: 16,
     backgroundColor: systemColors.card,
     padding: 24,
-    boxShadow: `0 0 24px ${glow(0.6)}`,
+    gap: 8,
   },
-  image: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    borderWidth: 2,
-    borderColor: systemColors.accent,
-    marginBottom: 14,
+  icon: {
+    width: 46,
+    height: 46,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 14,
+    backgroundColor: systemColors.backgroundRaised,
+    marginBottom: 4,
   },
   tag: {
     color: systemColors.accent,
     fontSize: 10,
-    letterSpacing: 2,
+    letterSpacing: 1.4,
+    fontWeight: "600",
   },
   title: {
     color: systemColors.text,
     fontSize: 20,
-    fontWeight: "700",
-    letterSpacing: 2,
-    marginTop: 12,
+    fontWeight: "600",
+    textAlign: "center",
   },
-  level: {
-    color: systemColors.accent,
-    fontSize: 64,
-    fontWeight: "700",
-    textShadowColor: systemColors.primary,
-    textShadowRadius: 16,
-  },
-  rank: {
+  body: {
     color: systemColors.textMuted,
     fontSize: 13,
+    lineHeight: 19,
+    textAlign: "center",
   },
   hint: {
     color: systemColors.textFaint,
     fontSize: 10,
-    marginTop: 18,
+    marginTop: 10,
   },
 });

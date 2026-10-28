@@ -176,9 +176,13 @@ export const styles = StyleSheet.create({
     backgroundColor: systemColors.background,
   },
   scrollContent: {
+    flexGrow: 1,
+    width: "100%",
+    maxWidth: 1180,
+    alignSelf: "center",
     paddingHorizontal: 16,
     paddingTop: 8,
-    paddingBottom: 28,
+    paddingBottom: 32,
     gap: 10,
   },
   lineIcon: {
@@ -209,7 +213,7 @@ export const styles = StyleSheet.create({
   card: {
     borderWidth: 1,
     borderColor: systemColors.border,
-    borderRadius: 15,
+    borderRadius: 12,
     backgroundColor: systemColors.card,
     padding: 14,
   },
@@ -221,10 +225,10 @@ export const styles = StyleSheet.create({
     height: "100%",
   },
   button: {
-    minHeight: 48,
+    minHeight: 50,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 10,
+    borderRadius: 12,
     paddingHorizontal: 16,
     backgroundColor: systemColors.primary,
   },
@@ -259,7 +263,7 @@ export const styles = StyleSheet.create({
     letterSpacing: 1.2,
   },
   input: {
-    minHeight: 46,
+    minHeight: 48,
     borderWidth: 1,
     borderColor: systemColors.border,
     borderRadius: 10,
@@ -269,7 +273,7 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   chip: {
-    minHeight: 34,
+    minHeight: 40,
     justifyContent: "center",
     borderWidth: 1,
     borderColor: systemColors.border,
@@ -326,8 +330,8 @@ export const styles = StyleSheet.create({
     textAlign: "center",
   },
   iconButton: {
-    width: 38,
-    height: 38,
+    width: 44,
+    height: 44,
     alignItems: "center",
     justifyContent: "center",
     borderRadius: 19,

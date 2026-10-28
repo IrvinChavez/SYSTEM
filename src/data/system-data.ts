@@ -45,6 +45,49 @@ export type DailyProgress = {
   totalMissions: number;
 };
 
+export type TaskStatus = "pending" | "in_progress" | "blocked" | "completed";
+export type TaskPriority = "low" | "normal" | "high";
+
+export type PersonalTask = {
+  id: string;
+  title: string;
+  description: string;
+  status: TaskStatus;
+  priority: TaskPriority;
+  dueDate: string | null;
+  estimateMinutes: number | null;
+  projectId: string | null;
+};
+
+export type ProjectStatus = "active" | "paused" | "blocked" | "completed";
+
+export type PersonalProject = {
+  id: string;
+  title: string;
+  purpose: string;
+  status: ProjectStatus;
+  nextAction: string;
+  deadline: string | null;
+};
+
+export type GoalHorizon = "short" | "medium" | "long";
+
+export type PersonalGoal = {
+  id: string;
+  title: string;
+  measure: string;
+  nextStep: string;
+  horizon: GoalHorizon;
+  targetDate: string | null;
+  status: "active" | "paused" | "completed";
+};
+
+export type PersonalNote = {
+  id: string;
+  title: string;
+  body: string;
+};
+
 export const statInfo: Record<StatKey, { label: string; icon: string; description: string }> = {
   STR: { label: "Fuerza", icon: "◆", description: "Ejercicio y actividad física" },
   INT: { label: "Inteligencia", icon: "▤", description: "Estudio, lectura y proyectos" },
@@ -67,16 +110,6 @@ export const difficultyOptions = [
 export const missionIcons = ["☼", "◇", "▣", "▤", "⌂", "▥", "◆", "✚", "➶", "◉", "♫", "☾"];
 
 export const eventCategories = ["CLASE", "TRABAJO", "EXAMEN", "PERSONAL", "OTRO"];
-
-// Misiones con las que arranca cada cuenta nueva.
-export const starterMissions: Omit<Mission, "id">[] = [
-  { title: "Levantarse temprano", time: "06:30", icon: "☼", xp: 20, stat: "VIT" },
-  { title: "Entrenamiento", time: "07:00", icon: "◇", xp: 35, stat: "STR" },
-  { title: "Universidad / Trabajo", time: "09:00", icon: "▣", xp: 20, stat: "AGI" },
-  { title: "Estudio / Proyecto", time: "16:00", icon: "▤", xp: 35, stat: "INT" },
-  { title: "Ordenar espacio", time: "20:00", icon: "⌂", xp: 10, stat: "AGI" },
-  { title: "Lectura", time: "21:00", icon: "▥", xp: 20, stat: "INT" },
-];
 
 // Sugerencias del Sistema agrupadas por la estadística que entrenan.
 export const suggestedMissions: Record<StatKey, Omit<Mission, "id">[]> = {

@@ -74,19 +74,19 @@ export default function RegisterScreen() {
 
   return (
     <AuthFrame
-      title="Despertar"
-      subtitle="Elige tu nombre de usuario. El Sistema te asignará tus primeras misiones diarias."
+      title="Crear cuenta"
+      subtitle="Configura tu espacio personal. Añadirás tus propios hábitos y prioridades."
       footer={(
         <Link href="/login" replace style={styles.link}>
-          ¿Ya eres Jugador? <Text style={styles.linkStrong}>Ingresar</Text>
+          ¿Ya tienes cuenta? <Text style={styles.linkStrong}>Iniciar sesión</Text>
         </Link>
       )}
     >
       <TextField
-        label="NOMBRE DE USUARIO"
+        label="USUARIO"
         value={username}
         onChangeText={setUsername}
-        placeholder="jinwoo"
+        placeholder="Tu usuario"
         autoCapitalize="none"
         autoCorrect={false}
         autoComplete="username-new"

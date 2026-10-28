@@ -22,6 +22,17 @@ export function isValidTime(value: string) {
   return /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
 }
 
+export function isValidDateKey(value: string) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return false;
+  const [, yearText, monthText, dayText] = match;
+  const date = new Date(2000, 0, 1);
+  date.setFullYear(Number(yearText), Number(monthText) - 1, Number(dayText));
+  return date.getFullYear() === Number(yearText)
+    && date.getMonth() === Number(monthText) - 1
+    && date.getDate() === Number(dayText);
+}
+
 export function currentTime() {
   const now = new Date();
   return `${pad(now.getHours())}:${pad(now.getMinutes())}`;

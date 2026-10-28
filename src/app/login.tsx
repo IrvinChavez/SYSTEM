@@ -51,11 +51,11 @@ export default function LoginScreen() {
 
   return (
     <AuthFrame
-      title="Has sido elegido como Jugador"
-      subtitle="Ingresa para continuar con tus misiones diarias."
+      title="Bienvenido de vuelta"
+      subtitle="Inicia sesión para ver tu planificación, tareas y hábitos."
       footer={signupOpen ? (
         <Link href="/register" replace style={styles.link}>
-          ¿Aún no despiertas? <Text style={styles.linkStrong}>Crear cuenta</Text>
+          ¿Primera vez aquí? <Text style={styles.linkStrong}>Crear cuenta</Text>
         </Link>
       ) : null}
     >
@@ -70,10 +70,10 @@ export default function LoginScreen() {
         </>
       ) : null}
       <TextField
-        label="NOMBRE DE USUARIO"
+        label="USUARIO"
         value={username}
         onChangeText={setUsername}
-        placeholder="jinwoo"
+        placeholder="Tu usuario"
         autoCapitalize="none"
         autoCorrect={false}
         autoComplete="username"

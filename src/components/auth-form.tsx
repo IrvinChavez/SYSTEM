@@ -1,10 +1,8 @@
-import { Image } from "expo-image";
 import { ReactNode } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { glow, systemColors } from "@/constants/system-colors";
-
-const monarch = require("@/assets/images/system-monarch.png");
+import { Icon } from "@/components/ui";
+import { systemColors } from "@/constants/system-colors";
 
 // Marco común de las pantallas de ingreso y registro.
 export function AuthFrame({ title, subtitle, children, footer }: { title: string; subtitle: string; children: ReactNode; footer: ReactNode }) {
@@ -14,14 +12,14 @@ export function AuthFrame({ title, subtitle, children, footer }: { title: string
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <View style={styles.brand}>
             <View style={styles.heroFrame}>
-              <Image source={monarch} style={styles.hero} contentFit="cover" accessibilityLabel="El Sistema" />
+              <Icon name="layers-outline" size={24} color={systemColors.accent} />
             </View>
             <Text style={styles.brandName}>SYSTEM</Text>
-            <Text style={styles.brandTagline}>TU POTENCIAL SIN LÍMITES</Text>
+            <Text style={styles.brandTagline}>ORGANIZA TU DÍA</Text>
           </View>
 
           <View style={styles.window}>
-            <Text style={styles.windowTag}>[ NOTIFICACIÓN ]</Text>
+            <Text style={styles.windowTag}>TU ESPACIO PERSONAL</Text>
             <Text style={styles.title}>{title}</Text>
             <Text style={styles.subtitle}>{subtitle}</Text>
             <View style={styles.form}>{children}</View>
@@ -50,70 +48,65 @@ const styles = StyleSheet.create({
   content: {
     flexGrow: 1,
     justifyContent: "center",
-    padding: 20,
-    gap: 20,
-    maxWidth: 480,
+    padding: 24,
+    gap: 16,
+    maxWidth: 520,
     width: "100%",
     alignSelf: "center",
   },
   brand: {
     alignItems: "center",
-    paddingVertical: 12,
+    paddingVertical: 4,
   },
   heroFrame: {
-    width: 190,
-    height: 190,
-    borderRadius: 95,
-    borderWidth: 2,
-    borderColor: systemColors.accent,
+    width: 48,
+    height: 48,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: systemColors.border,
     overflow: "hidden",
-    marginBottom: 16,
-    boxShadow: `0 0 24px ${glow(0.8)}`,
     backgroundColor: systemColors.card,
-  },
-  hero: {
-    width: "100%",
-    height: "100%",
+    marginBottom: 10,
   },
   brandName: {
     color: systemColors.text,
-    fontSize: 34,
-    fontWeight: "300",
-    letterSpacing: 12,
-    paddingLeft: 12,
+    fontSize: 22,
+    fontWeight: "600",
+    letterSpacing: 4,
+    paddingLeft: 4,
   },
   brandTagline: {
     color: systemColors.textFaint,
     fontSize: 9,
-    letterSpacing: 3,
-    marginTop: 8,
+    letterSpacing: 1.6,
+    marginTop: 5,
   },
   window: {
     borderWidth: 1,
-    borderColor: systemColors.primary,
-    borderRadius: 14,
+    borderColor: systemColors.border,
+    borderRadius: 16,
     backgroundColor: systemColors.card,
     padding: 20,
-    boxShadow: `0 0 18px ${glow(0.35)}`,
   },
   windowTag: {
     color: systemColors.accent,
     fontSize: 10,
-    letterSpacing: 2,
-    textAlign: "center",
+    letterSpacing: 1.2,
   },
   title: {
     color: systemColors.text,
     fontSize: 20,
     fontWeight: "700",
-    textAlign: "center",
+    textAlign: "left",
     marginTop: 10,
   },
   subtitle: {
     color: systemColors.textMuted,
     fontSize: 13,
     lineHeight: 19,
-    textAlign: "center",
+    textAlign: "left",
     marginTop: 6,
   },
   form: {

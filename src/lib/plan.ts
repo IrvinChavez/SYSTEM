@@ -5,9 +5,10 @@ import {
   statKeys,
   type AgendaEvent,
   type Mission,
+  type PersonalTask,
   type StatKey,
 } from "@/data/system-data";
-import { isValidTime } from "@/lib/dates";
+import { isValidDateKey, isValidTime } from "@/lib/dates";
 
 // Lógica pura (sin red ni Firebase) para validar lo que propone la IA. Tiene pruebas en tests/plan.test.ts.
 
@@ -15,6 +16,7 @@ export type PlanSnapshot = {
   missions: Mission[];
   events: AgendaEvent[];
   today: string;
+  tasks?: PersonalTask[];
 };
 
 // Cambios que la IA propone y que el jugador aprueba antes de aplicarlos.
@@ -24,10 +26,12 @@ export type PlanAction =
   | { type: "delete_mission"; id: string; before: Mission }
   | { type: "add_event"; event: Omit<AgendaEvent, "id"> }
   | { type: "update_event"; id: string; before: AgendaEvent; changes: Partial<Omit<AgendaEvent, "id" | "category">> }
-  | { type: "delete_event"; id: string; before: AgendaEvent };
+  | { type: "delete_event"; id: string; before: AgendaEvent }
+  | { type: "add_task"; task: Omit<PersonalTask, "id"> }
+  | { type: "update_task"; id: string; before: PersonalTask; changes: Partial<Omit<PersonalTask, "id">> };
 
 const allowedXp = [10, 20, 35, 50];
-const isDateKey = (value: unknown): value is string => typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value);
+const isDateKey = (value: unknown): value is string => typeof value === "string" && isValidDateKey(value);
 const text = (value: unknown, max: number) => (typeof value === "string" ? value.trim().slice(0, max) : "");
 
 export function sanitizeMission(raw: Record<string, unknown>, fallbackStat: StatKey): Omit<Mission, "id"> | null {
@@ -47,6 +51,7 @@ export function sanitizeMission(raw: Record<string, unknown>, fallbackStat: Stat
 export function sanitizeActions(rawActions: unknown, player: PlanSnapshot): PlanAction[] {
   if (!Array.isArray(rawActions)) return [];
   const missionsById = new Map(player.missions.map((mission) => [mission.id, mission]));
+  const tasksById = new Map((player.tasks ?? []).map((task) => [task.id, task]));
   // Los eventos importados del calendario externo se editan allá: la IA solo acomoda cosas a su alrededor.
   const eventsById = new Map(player.events.filter((event) => event.source !== "calendar").map((event) => [event.id, event]));
 
@@ -96,6 +101,47 @@ export function sanitizeActions(rawActions: unknown, player: PlanSnapshot): Plan
         const before = eventsById.get(id);
         return before ? [{ type: "delete_event", id, before }] : [];
       }
+      case "add_task": {
+        const title = text(raw.title, 120);
+        const dueDate = raw.dueDate === null || raw.dueDate === undefined || raw.dueDate === "" ? null : raw.dueDate;
+        const estimateMinutes = raw.estimateMinutes === null || raw.estimateMinutes === undefined ? null : Number(raw.estimateMinutes);
+        if (!title || (dueDate !== null && !isDateKey(dueDate))) return [];
+        if (estimateMinutes !== null && (!Number.isInteger(estimateMinutes) || estimateMinutes < 1 || estimateMinutes > 1440)) return [];
+        const priority = raw.priority === "high" || raw.priority === "low" ? raw.priority : "normal";
+        const status = ["pending", "in_progress", "blocked", "completed"].includes(String(raw.status)) ? raw.status as PersonalTask["status"] : "pending";
+        return [{
+          type: "add_task",
+          task: {
+            title,
+            description: text(raw.description, 1200),
+            status,
+            priority,
+            dueDate: dueDate as string | null,
+            estimateMinutes,
+            projectId: null,
+          },
+        }];
+      }
+      case "update_task": {
+        const before = tasksById.get(id);
+        if (!before) return [];
+        const changes: Partial<Omit<PersonalTask, "id">> = {};
+        const title = text(raw.title, 120);
+        if (title && title !== before.title) changes.title = title;
+        if (typeof raw.description === "string" && raw.description.trim().slice(0, 1200) !== before.description) {
+          changes.description = raw.description.trim().slice(0, 1200);
+        }
+        if (["pending", "in_progress", "blocked", "completed"].includes(String(raw.status)) && raw.status !== before.status) {
+          changes.status = raw.status as PersonalTask["status"];
+        }
+        if (["low", "normal", "high"].includes(String(raw.priority)) && raw.priority !== before.priority) {
+          changes.priority = raw.priority as PersonalTask["priority"];
+        }
+        if (raw.dueDate === null && before.dueDate !== null) changes.dueDate = null;
+        else if (isDateKey(raw.dueDate) && raw.dueDate !== before.dueDate) changes.dueDate = raw.dueDate;
+        if (Object.keys(changes).length) return [{ type: "update_task", id, before, changes }];
+        return [];
+      }
       default:
         return [];
     }
@@ -122,6 +168,10 @@ export function describeAction(action: PlanAction) {
     }
     case "delete_event":
       return `Eliminar evento: ${action.before.title} (${action.before.date})`;
+    case "add_task":
+      return `Nueva tarea: ${action.task.title}${action.task.dueDate ? ` · fecha ${action.task.dueDate}` : ""}`;
+    case "update_task":
+      return `Actualizar tarea ${action.before.title}: ${action.changes.status ? `estado ${action.changes.status}` : action.changes.title ? `nombre "${action.changes.title}"` : "detalles"}`;
   }
 }
 

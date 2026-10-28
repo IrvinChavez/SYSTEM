@@ -7,7 +7,7 @@ import { systemColors } from "@/constants/system-colors";
 const sections: { title: string; body: string }[] = [
   {
     title: "Qué datos guardamos",
-    body: "Tu nombre de usuario, tu contraseña (cifrada por Firebase Authentication; nosotros nunca la vemos), el nombre de jugador, la foto de perfil que elijas, tus misiones, eventos de agenda y el progreso diario (EXP, nivel, estadísticas y rachas).",
+    body: "Tu nombre de usuario, tu contraseña (gestionada por Firebase Authentication; nosotros nunca la vemos), nombre y foto opcional, tareas, proyectos, metas, notas, hábitos, eventos de agenda y el progreso diario de hábitos.",
   },
   {
     title: "Dónde se guardan",
@@ -23,7 +23,11 @@ const sections: { title: string; body: string }[] = [
   },
   {
     title: "Inteligencia artificial",
-    body: "Cuando usas el chat o el generador de misiones, enviamos a Groq (proveedor del modelo de IA) tu mensaje junto con un resumen de tu nivel, misiones y agenda, solo para generar la respuesta. No enviamos tu contraseña ni tu foto.",
+    body: "Cuando usas el asistente o el generador de hábitos, enviamos a Groq (proveedor del modelo de IA) tu mensaje y un resumen de tus tareas, proyectos, metas, hábitos y agenda para generar la respuesta. Las respuestas opcionales del cuestionario personal solo se incluyen si activas expresamente la personalización con IA; puedes revocar ese permiso en el cuestionario desde Perfil. No enviamos tus notas, contraseña ni foto.",
+  },
+  {
+    title: "Cuestionario personal (opcional)",
+    body: "Puedes responder preguntas sobre tus áreas de atención, rutinas, horarios, objetivos, obstáculos y prioridades de cuidado. Las respuestas se guardan en tu espacio privado de Firestore para adaptar tu planificación. Puedes omitir el cuestionario, editarlo o borrar tus respuestas desde Perfil. No solicitamos información médica ni es una evaluación.",
   },
   {
     title: "Frases motivacionales",
@@ -50,7 +54,7 @@ export default function PrivacyScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.tag}>[ SYSTEM ]</Text>
         <Text style={styles.title}>Política de privacidad</Text>
-        <Text style={styles.updated}>Última actualización: 28 de septiembre de 2026</Text>
+        <Text style={styles.updated}>Última actualización: 27 de octubre de 2026</Text>
         {sections.map((section) => (
           <View key={section.title} style={styles.section}>
             <Text style={styles.sectionTitle}>{section.title}</Text>

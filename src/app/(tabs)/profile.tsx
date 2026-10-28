@@ -1,4 +1,4 @@
-import { Link } from "expo-router";
+import { Link, useRouter } from "expo-router";
 import { useState } from "react";
 import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { Avatar } from "@/components/avatar";
@@ -6,8 +6,9 @@ import { BiometricSettingsCard } from "@/components/biometric-settings";
 import { Card, Icon, PrimaryButton, ProgressBar, Screen, ScreenHeader, SectionHeading, TextField } from "@/components/ui";
 import { systemColors } from "@/constants/system-colors";
 import { authErrorMessage, useAuth } from "@/context/auth-context";
+import { useDiscovery } from "@/context/discovery-context";
+import { useOrganizer } from "@/context/organizer-context";
 import { usePlayer } from "@/context/player-context";
-import { statInfo, statKeys } from "@/data/system-data";
 import { confirmAction, notify, syncInBackground } from "@/lib/confirm";
 import { PhotoPermissionError, pickProfilePhoto } from "@/lib/pick-photo";
 import { useBiometrics } from "@/lib/use-biometrics";
@@ -15,6 +16,7 @@ import { readBiometricLogin } from "@/services/biometric-service";
 import { updatePlayerName, updatePlayerPhoto } from "@/services/player-service";
 
 export default function ProfileScreen() {
+  const router = useRouter();
   const { logout, deleteAccount } = useAuth();
   const [deleting, setDeleting] = useState(false);
   const [deletePassword, setDeletePassword] = useState("");
@@ -49,7 +51,9 @@ export default function ProfileScreen() {
       }
     });
   };
-  const { uid, profile, level, experience, experienceGoal, rank, streak, weeklyProgress } = usePlayer();
+  const { uid, profile, streak, weeklyProgress } = usePlayer();
+  const { tasks, projects, goals } = useOrganizer();
+  const { discovery } = useDiscovery();
   const [editingName, setEditingName] = useState(false);
   const [name, setName] = useState(profile.name);
   const [photoBusy, setPhotoBusy] = useState(false);
@@ -73,8 +77,6 @@ export default function ProfileScreen() {
     });
   };
 
-  const maxStat = Math.max(10, ...statKeys.map((key) => profile.stats[key]));
-
   const saveName = () => {
     const trimmed = name.trim();
     if (!trimmed) return;
@@ -84,7 +86,7 @@ export default function ProfileScreen() {
 
   return (
     <Screen>
-      <ScreenHeader title="PERFIL" subtitle={profile.username ? `@${profile.username}` : undefined} />
+      <ScreenHeader title="Perfil" subtitle={profile.username ? `@${profile.username}` : undefined} />
 
       <Card style={styles.photoCard}>
         <Pressable accessibilityRole="button" accessibilityLabel="Cambiar foto de perfil" onPress={() => changePhoto("library")} disabled={photoBusy}>
@@ -102,67 +104,67 @@ export default function ProfileScreen() {
       </Card>
 
       <Card style={styles.statusWindow}>
-        <Text style={styles.windowTag}>[ ESTADO ]</Text>
+        <Text style={styles.windowTag}>RESUMEN PERSONAL</Text>
         <View style={styles.statusRow}>
           <View style={styles.flex}>
-            <Text style={styles.label}>NOMBRE</Text>
+            <Text style={styles.label}>CUENTA</Text>
             <Text style={styles.name} numberOfLines={1}>{profile.name}</Text>
-            <Text style={styles.label}>TÍTULO</Text>
-            <Text style={styles.value}>{rank.title}</Text>
+            <Text style={styles.label}>HÁBITOS ESTA SEMANA</Text>
+            <Text style={styles.value}>Consistencia, no perfección</Text>
           </View>
           <View style={styles.rankBadge}>
-            <Text style={styles.rankLetter}>{rank.rank}</Text>
-            <Text style={styles.rankLabel}>RANGO</Text>
+            <Text style={styles.rankLetter}>{streak}</Text>
+            <Text style={styles.rankLabel}>DÍAS</Text>
           </View>
         </View>
         <View style={styles.levelRow}>
-          <Text style={styles.levelText}>NIVEL {level}</Text>
-          <Text style={styles.expText}>{experience} / {experienceGoal} EXP</Text>
+          <Text style={styles.levelText}>PROGRESO SEMANAL</Text>
+          <Text style={styles.expText}>{Math.round(weeklyProgress * 100)}%</Text>
         </View>
-        <ProgressBar progress={experience / experienceGoal} height={6} color={systemColors.accent} />
+        <ProgressBar progress={weeklyProgress} height={6} color={systemColors.accent} />
         <View style={styles.metrics}>
           <View style={styles.metric}>
-            <Text style={styles.metricValue}>{profile.totalXp}</Text>
-            <Text style={styles.metricLabel}>EXP TOTAL</Text>
+            <Text style={styles.metricValue}>{tasks.filter((task) => task.status !== "completed").length}</Text>
+            <Text style={styles.metricLabel}>TAREAS ABIERTAS</Text>
           </View>
           <View style={styles.metric}>
-            <Text style={styles.metricValue}>{streak}🔥</Text>
-            <Text style={styles.metricLabel}>RACHA</Text>
+            <Text style={styles.metricValue}>{projects.filter((project) => project.status === "active").length}</Text>
+            <Text style={styles.metricLabel}>PROYECTOS</Text>
           </View>
           <View style={styles.metric}>
-            <Text style={styles.metricValue}>{Math.round(weeklyProgress * 100)}%</Text>
-            <Text style={styles.metricLabel}>SEMANA</Text>
+            <Text style={styles.metricValue}>{goals.filter((goal) => goal.status === "active").length}</Text>
+            <Text style={styles.metricLabel}>METAS ACTIVAS</Text>
           </View>
         </View>
       </Card>
 
       <Card>
-        <SectionHeading icon="◆" title="ESTADÍSTICAS" />
-        <Text style={styles.helper}>Cada misión completada suma 1 punto a su estadística.</Text>
-        <View style={styles.stats}>
-          {statKeys.map((key) => (
-            <View key={key} style={styles.stat}>
-              <View style={styles.statHeader}>
-                <Text style={styles.statName}>{statInfo[key].icon}  {key} · {statInfo[key].label}</Text>
-                <Text style={styles.statValue}>{profile.stats[key]}</Text>
-              </View>
-              <ProgressBar progress={profile.stats[key] / maxStat} />
-            </View>
-          ))}
-        </View>
+        <SectionHeading icon="heart-outline" title="TU RUTINA Y TUS PROPÓSITOS" />
+        <Text style={styles.helper}>
+          {discovery?.completed
+            ? discovery.aiPersonalizationConsent
+              ? "Cuestionario completo · personalización con IA autorizada."
+              : "Cuestionario completo · tus respuestas se mantienen privadas frente a la IA."
+            : "Cuestionario opcional para conocer tus horarios, hábitos, metas y prioridades de cuidado."}
+        </Text>
+        <PrimaryButton
+          label={discovery?.completed ? "REVISAR O EDITAR RESPUESTAS" : "CONOCER MI RUTINA"}
+          variant="outline"
+          onPress={() => router.push("/onboarding")}
+        />
       </Card>
 
       <Card>
-        <SectionHeading icon="✎" title="CUENTA" />
+        <SectionHeading icon="person-outline" title="CUENTA" />
         <View style={styles.account}>
           {editingName ? (
             <>
-              <TextField label="NOMBRE DE JUGADOR" value={name} onChangeText={setName} maxLength={30} autoFocus onSubmitEditing={saveName} />
+              <TextField label="NOMBRE" value={name} onChangeText={setName} maxLength={30} autoFocus onSubmitEditing={saveName} />
               <PrimaryButton label="GUARDAR" onPress={saveName} />
               <PrimaryButton label="CANCELAR" variant="outline" onPress={() => { setName(profile.name); setEditingName(false); }} />
             </>
           ) : (
-            <PrimaryButton label="CAMBIAR NOMBRE DE JUGADOR" variant="outline" onPress={() => { setName(profile.name); setEditingName(true); }} />
+            <PrimaryButton label="CAMBIAR NOMBRE" variant="outline" onPress={() => { setName(profile.name); setEditingName(true); }} />
           )}
           <PrimaryButton
             label="CERRAR SESIÓN"
@@ -176,7 +178,7 @@ export default function ProfileScreen() {
 
       <Card style={styles.dangerCard}>
         <SectionHeading icon="⚠" title="ZONA DE PELIGRO" />
-        <Text style={styles.helper}>Eliminar tu cuenta borra para siempre tu progreso, misiones, agenda y foto.</Text>
+        <Text style={styles.helper}>Eliminar tu cuenta borra tus tareas, proyectos, metas, notas, hábitos, agenda, cuestionario y perfil. Esta acción es permanente.</Text>
         <View style={styles.account}>
           {deleting ? (
             <>
@@ -269,7 +271,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   statusWindow: {
-    borderColor: systemColors.primary,
+    borderColor: systemColors.border,
     gap: 10,
   },
   windowTag: {
@@ -312,8 +314,6 @@ const styles = StyleSheet.create({
     color: systemColors.accent,
     fontSize: 32,
     fontWeight: "700",
-    textShadowColor: systemColors.primary,
-    textShadowRadius: 10,
   },
   rankLabel: {
     color: systemColors.textFaint,

@@ -26,7 +26,6 @@ import {
   Mission,
   MissionReward,
   PlayerProfile,
-  starterMissions,
   statKeys,
   type StatKey,
 } from "@/data/system-data";
@@ -43,10 +42,9 @@ const userDoc = (uid: string) => doc(firestore, "users", uid);
 const missionsCollection = (uid: string) => collection(firestore, "users", uid, "missions");
 const progressCollection = (uid: string) => collection(firestore, "users", uid, "dailyProgress");
 const eventsCollection = (uid: string) => collection(firestore, "users", uid, "events");
+const tasksCollection = (uid: string) => collection(firestore, "users", uid, "tasks");
 
-// Crea el perfil y las misiones iniciales solo si aún no existen. Es idempotente: al registrarse lo llaman
-// tanto el formulario (con el nombre) como el PlayerProvider cuando el perfil no existe, y no importa cuál
-// llegue primero.
+// Crea solo el perfil: los hábitos y compromisos se agregan según la rutina real de cada persona.
 export async function initPlayer(uid: string, username: string, name?: string) {
   await runTransaction(firestore, async (transaction) => {
     const snapshot = await transaction.get(userDoc(uid));
@@ -58,9 +56,6 @@ export async function initPlayer(uid: string, username: string, name?: string) {
 
     const profile: PlayerProfile = { name: name || username || "Player", username, photo: null, calendarUrl: null, totalXp: 0, stats: emptyStats };
     transaction.set(userDoc(uid), { ...profile, createdAt: serverTimestamp() });
-    starterMissions.forEach((mission, index) => {
-      transaction.set(doc(missionsCollection(uid), `starter-${index}`), { ...mission, createdAt: serverTimestamp() });
-    });
   });
 }
 
@@ -224,7 +219,16 @@ export async function replaceCalendarEvents(uid: string, imported: ImportedEvent
 // Borra todos los datos del jugador (subcolecciones y perfil). Firestore no borra subcolecciones en cascada,
 // así que se eliminan documento por documento en lotes de hasta 500 escrituras.
 export async function deletePlayerData(uid: string) {
-  const collections = [missionsCollection(uid), eventsCollection(uid), progressCollection(uid)];
+  const collections = [
+    missionsCollection(uid),
+    eventsCollection(uid),
+    progressCollection(uid),
+    tasksCollection(uid),
+    collection(firestore, "users", uid, "projects"),
+    collection(firestore, "users", uid, "goals"),
+    collection(firestore, "users", uid, "notes"),
+    collection(firestore, "users", uid, "discovery"),
+  ];
   const refs = (await Promise.all(collections.map((ref) => getDocs(ref)))).flatMap((snapshot) => snapshot.docs.map((item) => item.ref));
   refs.push(userDoc(uid));
 
@@ -258,6 +262,12 @@ export function applyPlan(uid: string, actions: PlanAction[]) {
         break;
       case "delete_event":
         batch.delete(doc(eventsCollection(uid), action.id));
+        break;
+      case "add_task":
+        batch.set(doc(tasksCollection(uid)), action.task);
+        break;
+      case "update_task":
+        batch.update(doc(tasksCollection(uid), action.id), action.changes);
         break;
     }
   }

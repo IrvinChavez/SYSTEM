@@ -43,11 +43,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   sheet: {
+    width: "100%",
+    maxWidth: 680,
+    alignSelf: "center",
     maxHeight: "88%",
     borderTopWidth: 1,
-    borderColor: systemColors.primary,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderColor: systemColors.border,
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
     backgroundColor: systemColors.card,
   },
   header: {

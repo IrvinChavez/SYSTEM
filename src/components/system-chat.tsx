@@ -1,56 +1,77 @@
-import { Image } from "expo-image";
 import { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, TextInputInstance, View } from "react-native";
 import { Avatar } from "@/components/avatar";
 import { Card, Chip, Icon, IconButton, PrimaryButton, SectionHeading } from "@/components/ui";
 import { systemColors } from "@/constants/system-colors";
 import { usePlayer } from "@/context/player-context";
 import { askSystem, ChatMessage, describeAction, findConflicts, PlanAction, PlayerSnapshot } from "@/services/ai-service";
-import { syncInBackground } from "@/lib/confirm";
 import { applyPlan } from "@/services/player-service";
-
-const monarch = require("@/assets/images/system-monarch.png");
 
 type Entry = ChatMessage & {
   actions?: PlanAction[];
   warnings?: string[];
-  status?: "pending" | "applied" | "discarded";
+  status?: "pending" | "saving" | "applied" | "failed" | "discarded";
+  systemGreeting?: boolean;
 };
 
 // "send" manda la pregunta tal cual; "draft" deja el inicio escrito para que completes tus actividades.
 const quickPrompts: { label: string; text: string; mode: "send" | "draft" }[] = [
-  { label: "¿Qué tengo hoy?", text: "¿Qué tengo hoy, cuánto dura cada cosa y cuánto tiempo libre me queda?", mode: "send" },
-  { label: "Te cuento mis actividades diarias", text: "Mis actividades de todos los días son: ", mode: "draft" },
-  { label: "Te paso mi horario de clases", text: "Mi horario de clases es: ", mode: "draft" },
-  { label: "Acomoda mi día de mañana", text: "Acomoda mi día de mañana", mode: "send" },
-  { label: "Motívame para terminar hoy", text: "Motívame para terminar hoy", mode: "send" },
+  { label: "Planificar día", text: "PLANIFICAR DÍA. Ayúdame a priorizar lo que sí cabe hoy.", mode: "send" },
+  { label: "Planificar semana", text: "PLANIFICAR SEMANA. Ayúdame a organizar la semana sin sobrecargarla.", mode: "send" },
+  { label: "Vaciar mi mente", text: "VACIAR MI MENTE. Esto es lo que tengo pendiente: ", mode: "draft" },
+  { label: "Revisión diaria", text: "REVISIÓN DIARIA. Guíame con preguntas breves.", mode: "send" },
+  { label: "Estoy saturado", text: "ESTOY SATURADO. Ayúdame a reducir la carga y elegir qué hacer primero.", mode: "send" },
 ];
 
-const greeting: Entry = {
-  role: "assistant",
-  content: "[ Sistema en línea ] Jugador, cuéntame qué quieres hacer o cuál es tu horario y acomodaré tus misiones y tu agenda. También puedo analizar tu progreso.",
-};
+function createGreeting(player: PlayerSnapshot, questionnaireCompleted: boolean): Entry {
+  const discovery = player.discovery;
+  const supportStyle = discovery?.supportStyle === "direct"
+    ? "con claridad y al grano"
+    : discovery?.supportStyle === "structured"
+      ? "con pasos sencillos y ordenados"
+      : "con calma, sin exigirte de más";
+  const goal = discovery?.nearTermGoal;
+  return {
+    role: "assistant",
+    systemGreeting: true,
+    content: discovery
+      ? `Hola, ${player.name}. Me alegra acompañarte ${supportStyle}. Tengo presente que quieres avanzar en “${goal}”. ¿Qué paso pequeño te gustaría dar hoy, cuidando también el espacio que necesitas?`
+      : questionnaireCompleted
+        ? `Hola, ${player.name}. Me alegra acompañarte. Este espacio es para organizarte sin juzgarte ni exigirte de más. ¿Qué te gustaría cuidar primero hoy: tu rutina, una tarea o un propósito?`
+        : `Hola, ${player.name}. Me alegra acompañarte. Este espacio es para organizarte sin juzgarte ni exigirte de más. ¿Qué te gustaría cuidar primero hoy: tu rutina, una tarea o un propósito? Si quieres, puedes responder el cuestionario para que conozca mejor tu ritmo.`,
+  };
+}
 
 // Lo que se envía a la IA: el texto de cada mensaje y, si hubo propuesta, qué pasó con ella.
 function toHistory(entries: Entry[]): ChatMessage[] {
   return entries
-    .filter((entry) => entry !== greeting)
+    .filter((entry) => !entry.systemGreeting)
     .map((entry) => {
       if (!entry.actions?.length) return { role: entry.role, content: entry.content };
       const summary = entry.actions.map(describeAction).join("; ");
-      const outcome = entry.status === "applied" ? "El jugador APLICÓ estos cambios" : entry.status === "discarded" ? "El jugador DESCARTÓ estos cambios" : "Cambios aún sin aplicar";
+      const outcome = entry.status === "applied"
+        ? "La persona confirmó que estos cambios se guardaron"
+        : entry.status === "discarded"
+          ? "La persona DESCARTÓ estos cambios"
+          : entry.status === "saving"
+            ? "Estos cambios están sincronizándose"
+            : entry.status === "failed"
+              ? "No se pudieron guardar estos cambios"
+              : "Cambios aún sin aplicar";
       return { role: entry.role, content: `${entry.content}\n[${outcome}: ${summary}]` };
     });
 }
 
 // `autoPrompt` llega desde otras pantallas (p. ej. la tarjeta "En curso" de Inicio); `key` distingue cada envío.
-export function SystemChat({ player, autoPrompt }: { player: PlayerSnapshot; autoPrompt?: { text: string; key: string } }) {
+export function SystemChat({ player, autoPrompt, questionnaireCompleted = false }: { player: PlayerSnapshot; autoPrompt?: { text: string; key: string }; questionnaireCompleted?: boolean }) {
   const { uid, profile } = usePlayer();
-  const inputRef = useRef<TextInput>(null);
-  const [entries, setEntries] = useState<Entry[]>([greeting]);
+  const inputRef = useRef<TextInputInstance>(null);
+  const applyingEntries = useRef(new Set<string>());
+  const [entries, setEntries] = useState<Entry[]>(() => [createGreeting(player, questionnaireCompleted)]);
   const [input, setInput] = useState("");
   const [thinking, setThinking] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const conversationVersion = useRef(0);
 
   const updateEntry = (index: number, patch: Partial<Entry>) => {
     setEntries((current) => current.map((entry, i) => (i === index ? { ...entry, ...patch } : entry)));
@@ -60,6 +81,7 @@ export function SystemChat({ player, autoPrompt }: { player: PlayerSnapshot; aut
     const content = text.trim();
     if (!content || thinking) return;
 
+    const version = conversationVersion.current;
     const next: Entry[] = [...entries, { role: "user", content }];
     setEntries(next);
     setInput("");
@@ -68,17 +90,21 @@ export function SystemChat({ player, autoPrompt }: { player: PlayerSnapshot; aut
 
     try {
       const { reply, actions } = await askSystem(toHistory(next), player);
-      setEntries([...next, {
-        role: "assistant",
-        content: reply,
-        actions,
-        warnings: actions.length ? findConflicts(actions, player.events) : [],
-        status: actions.length ? "pending" : undefined,
-      }]);
+      if (conversationVersion.current === version) {
+        setEntries([...next, {
+          role: "assistant",
+          content: reply,
+          actions,
+          warnings: actions.length ? findConflicts(actions, player.events) : [],
+          status: actions.length ? "pending" : undefined,
+        }]);
+      }
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Error desconocido de la IA.");
+      if (conversationVersion.current === version) {
+        setError(reason instanceof Error ? reason.message : "Error desconocido de la IA.");
+      }
     } finally {
-      setThinking(false);
+      if (conversationVersion.current === version) setThinking(false);
     }
   };
 
@@ -97,23 +123,36 @@ export function SystemChat({ player, autoPrompt }: { player: PlayerSnapshot; aut
       return;
     }
     setInput(prompt.text);
-    inputRef.current?.focus();
+    TextInput.State.focusTextInput(inputRef.current?.getNativeRef());
   };
 
-  const apply = (index: number, actions: PlanAction[]) => {
-    updateEntry(index, { status: "applied" });
-    syncInBackground(applyPlan(uid, actions), "No se pudieron guardar los cambios de la IA en el servidor.");
+  const apply = async (index: number, actions: PlanAction[]) => {
+    if (entries[index]?.status === "saving" || entries[index]?.status === "applied") return;
+    const version = conversationVersion.current;
+    const operationKey = `${version}:${index}`;
+    if (applyingEntries.current.has(operationKey)) return;
+    applyingEntries.current.add(operationKey);
+    updateEntry(index, { status: "saving" });
+    try {
+      await applyPlan(uid, actions);
+      if (conversationVersion.current === version) updateEntry(index, { status: "applied" });
+    } catch (reason) {
+      console.warn("No se pudieron guardar los cambios de la IA", reason);
+      if (conversationVersion.current === version) updateEntry(index, { status: "failed" });
+    } finally {
+      applyingEntries.current.delete(operationKey);
+    }
   };
 
   return (
     <Card style={styles.card}>
       <View style={styles.header}>
-        <Image source={monarch} style={styles.headerImage} contentFit="cover" />
+        <AssistantMark size={42} />
         <View style={styles.flex}>
           <SectionHeading icon="✦" title="HABLA CON EL SISTEMA" />
-          <Text style={styles.headerHint}>Dile qué quieres hacer y acomodará tus horarios.</Text>
+          <Text style={styles.headerHint}>Organiza tareas, proyectos, hábitos y agenda con información real.</Text>
         </View>
-        <IconButton icon="refresh" label="Nueva conversación" onPress={() => { setEntries([greeting]); setError(null); }} />
+        <IconButton icon="refresh" label="Nueva conversación" onPress={() => { conversationVersion.current += 1; setEntries([createGreeting(player, questionnaireCompleted)]); setThinking(false); setError(null); }} />
       </View>
 
       <View style={styles.messages}>
@@ -127,7 +166,7 @@ export function SystemChat({ player, autoPrompt }: { player: PlayerSnapshot; aut
             </View>
           ) : (
             <View key={index} style={styles.systemRow}>
-              <Image source={monarch} style={styles.systemAvatar} contentFit="cover" />
+              <AssistantMark size={30} />
               <View style={[styles.bubble, styles.systemBubble]}>
                 <Text style={styles.messageText}>{entry.content}</Text>
                 {entry.actions?.length ? (
@@ -143,7 +182,7 @@ export function SystemChat({ player, autoPrompt }: { player: PlayerSnapshot; aut
         ))}
         {thinking ? (
           <View style={styles.systemRow}>
-            <Image source={monarch} style={styles.systemAvatar} contentFit="cover" />
+            <AssistantMark size={30} />
             <View style={[styles.bubble, styles.systemBubble, styles.thinking]}>
               <ActivityIndicator size="small" color={systemColors.accent} />
               <Text style={styles.thinkingText}>El Sistema está analizando…</Text>
@@ -184,8 +223,16 @@ export function SystemChat({ player, autoPrompt }: { player: PlayerSnapshot; aut
           <Icon name="send" size={18} color={systemColors.text} />
         </Pressable>
       </View>
-      <Text style={styles.source}>IA: Groq Cloud · los cambios solo se guardan si tocas &quot;Aplicar cambios&quot;</Text>
+      <Text style={styles.source}>IA en servidor · comparte solo lo necesario; las acciones propuestas requieren tu aprobación.</Text>
     </Card>
+  );
+}
+
+function AssistantMark({ size }: { size: number }) {
+  return (
+    <View style={[styles.assistantMark, { width: size, height: size, borderRadius: size / 3 }]}>
+      <Icon name="sparkles-outline" size={size * 0.52} color={systemColors.accent} />
+    </View>
   );
 }
 
@@ -208,22 +255,32 @@ function PlanCard({ entry, onApply, onDiscard }: { entry: Entry; onApply: () => 
         </View>
       ))}
 
-      {entry.status === "applied" ? (
+      {entry.status === "saving" ? (
+        <View style={styles.planRow}>
+          <ActivityIndicator size="small" color={systemColors.accent} />
+          <Text style={styles.planText}>Guardando cambios. Se confirmarán cuando el servidor responda.</Text>
+        </View>
+      ) : entry.status === "applied" ? (
         <View style={styles.planRow}>
           <Icon name="checkmark-circle" size={18} color={systemColors.success} />
-          <Text style={[styles.planText, styles.appliedText]}>Cambios aplicados. Revisa Misiones y Agenda.</Text>
+          <Text style={[styles.planText, styles.appliedText]}>Cambios guardados y sincronizados. Revisa tareas y planificación.</Text>
         </View>
       ) : entry.status === "discarded" ? (
         <Text style={styles.discardedText}>Propuesta descartada.</Text>
       ) : (
-        <View style={styles.planButtons}>
-          <View style={styles.flex}>
-            <PrimaryButton label="APLICAR CAMBIOS" onPress={onApply} />
+        <>
+          {entry.status === "failed" ? (
+            <Text style={styles.error}>No se pudieron guardar los cambios. Revisa la conexión y los permisos e inténtalo de nuevo.</Text>
+          ) : null}
+          <View style={styles.planButtons}>
+            <View style={styles.flex}>
+              <PrimaryButton label={entry.status === "failed" ? "REINTENTAR" : "APLICAR CAMBIOS"} onPress={onApply} />
+            </View>
+            <View style={styles.flex}>
+              <PrimaryButton label="DESCARTAR" variant="outline" onPress={onDiscard} />
+            </View>
           </View>
-          <View style={styles.flex}>
-            <PrimaryButton label="DESCARTAR" variant="outline" onPress={onDiscard} />
-          </View>
-        </View>
+        </>
       )}
     </View>
   );
@@ -235,8 +292,11 @@ function planIcon(action: PlanAction) {
       return "add-circle-outline" as const;
     case "add_event":
       return "calendar-outline" as const;
+    case "add_task":
+      return "checkbox-outline" as const;
     case "update_mission":
     case "update_event":
+    case "update_task":
       return "time-outline" as const;
     default:
       return "trash-outline" as const;
@@ -245,7 +305,7 @@ function planIcon(action: PlanAction) {
 
 const styles = StyleSheet.create({
   card: {
-    borderColor: systemColors.primary,
+    borderColor: systemColors.border,
   },
   flex: {
     flex: 1,
@@ -255,13 +315,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
   },
-  headerImage: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    borderWidth: 1.5,
-    borderColor: systemColors.accent,
-  },
+  assistantMark: { alignItems: "center", justifyContent: "center", backgroundColor: systemColors.cardAlt },
   headerHint: {
     color: systemColors.textMuted,
     fontSize: 11,
@@ -280,13 +334,6 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
     justifyContent: "flex-end",
     gap: 6,
-  },
-  systemAvatar: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    borderWidth: 1,
-    borderColor: systemColors.accent,
   },
   bubble: {
     maxWidth: "84%",

@@ -18,7 +18,7 @@ export function MissionRow({ mission, trailing }: { mission: DailyMission; trail
     <Pressable
       accessibilityRole="checkbox"
       accessibilityState={{ checked: mission.completed }}
-      accessibilityLabel={`${mission.title}, ${mission.xp} EXP`}
+      accessibilityLabel={`${mission.title}, hábito diario ${mission.completed ? "completado" : "pendiente"}`}
       onPress={handleToggle}
       style={({ pressed }) => [styles.row, mission.completed && styles.rowDone, pressed && styles.pressed]}
     >
@@ -28,7 +28,7 @@ export function MissionRow({ mission, trailing }: { mission: DailyMission; trail
       <Text style={[styles.icon, mission.completed && styles.doneText]}>{mission.icon}</Text>
       <View style={styles.copy}>
         <Text style={[styles.name, mission.completed && styles.doneText]} numberOfLines={1}>{mission.title}</Text>
-        <Text style={styles.meta}>+{mission.xp} EXP · {mission.stat}</Text>
+        <Text style={styles.meta}>Hábito diario · {mission.time}</Text>
       </View>
       <Text style={[styles.time, mission.completed && styles.doneText]}>{mission.time}</Text>
       {trailing}
@@ -38,7 +38,7 @@ export function MissionRow({ mission, trailing }: { mission: DailyMission; trail
 
 const styles = StyleSheet.create({
   row: {
-    minHeight: 44,
+    minHeight: 50,
     flexDirection: "row",
     alignItems: "center",
     borderRadius: 9,
@@ -47,12 +47,12 @@ const styles = StyleSheet.create({
     backgroundColor: systemColors.backgroundRaised,
   },
   rowDone: {
-    backgroundColor: systemColors.primarySoft,
+    backgroundColor: systemColors.cardAlt,
   },
   checkbox: {
     width: 21,
     height: 21,
-    borderRadius: 11,
+    borderRadius: 7,
     borderWidth: 1,
     borderColor: systemColors.textFaint,
     alignItems: "center",
@@ -68,7 +68,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   icon: {
-    color: systemColors.accent,
+    color: systemColors.textMuted,
     width: 27,
     fontSize: 18,
     marginLeft: 5,
@@ -79,12 +79,12 @@ const styles = StyleSheet.create({
     marginLeft: 6,
   },
   name: {
-    color: systemColors.textMuted,
-    fontSize: 13,
+    color: systemColors.text,
+    fontSize: 14,
   },
   meta: {
     color: systemColors.textFaint,
-    fontSize: 9,
+    fontSize: 11,
     marginTop: 2,
   },
   time: {

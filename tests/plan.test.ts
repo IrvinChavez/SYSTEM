@@ -1,12 +1,13 @@
 /// <reference types="node" />
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import type { AgendaEvent, Mission } from "@/data/system-data";
+import type { AgendaEvent, Mission, PersonalTask } from "@/data/system-data";
 import { describeAction, findConflicts, parseJsonObject, sanitizeActions, sanitizeMission, stripMarkdown } from "@/lib/plan";
 
 const missions: Mission[] = [{ id: "starter-1", title: "Entrenamiento", time: "07:00", icon: "◇", xp: 35, stat: "STR" }];
 const events: AgendaEvent[] = [{ id: "ev1", title: "Programación", date: "2026-09-28", start: "15:00", end: "18:00", location: "", category: "CLASE" }];
-const snapshot = { missions, events, today: "2026-09-27" };
+const tasks: PersonalTask[] = [{ id: "task-1", title: "Entregar reporte", description: "", status: "pending", priority: "normal", dueDate: null, estimateMinutes: null, projectId: null }];
+const snapshot = { missions, events, tasks, today: "2026-09-27" };
 
 test("sanitizeActions: acepta acciones válidas", () => {
   const actions = sanitizeActions([
@@ -15,8 +16,14 @@ test("sanitizeActions: acepta acciones válidas", () => {
     { type: "add_event", title: "Trabajo", date: "2026-09-28", start: "08:00", end: "14:00", category: "TRABAJO" },
     { type: "update_event", id: "ev1", start: "16:00" },
     { type: "delete_event", id: "ev1" },
+    { type: "add_task", title: "Enviar solicitud", priority: "high", dueDate: null },
+    { type: "update_task", id: "task-1", status: "in_progress" },
   ], snapshot);
-  assert.deepEqual(actions.map((action) => action.type), ["add_mission", "update_mission", "add_event", "update_event", "delete_event"]);
+  assert.deepEqual(actions.map((action) => action.type), ["add_mission", "update_mission", "add_event", "update_event", "delete_event", "add_task", "update_task"]);
+  assert.deepEqual(actions[5], {
+    type: "add_task",
+    task: { title: "Enviar solicitud", description: "", status: "pending", priority: "high", dueDate: null, estimateMinutes: null, projectId: null },
+  });
 });
 
 test("sanitizeActions: rechaza ids inventados, horas y fechas inválidas", () => {
@@ -29,6 +36,9 @@ test("sanitizeActions: rechaza ids inventados, horas y fechas inválidas", () =>
     { type: "add_event", title: "Al revés", date: "2026-09-28", start: "10:00", end: "09:00" },
     { type: "add_event", title: "", date: "2026-09-28", start: "08:00", end: "09:00" },
     { type: "update_event", id: "ev1", end: "14:00" },
+    { type: "update_task", id: "inventado", status: "completed" },
+    { type: "add_task", title: "Tarea con fecha inválida", dueDate: "2026-99-42" },
+    { type: "add_task", title: "Tarea con duración inválida", estimateMinutes: 1441 },
     { type: "hackear_todo" },
     null,
     "texto",

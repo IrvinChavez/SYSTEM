@@ -1,26 +1,23 @@
-// Paleta "Sistema azul": fondo negro y azul eléctrico como color de acción.
-// Todos los colores de la app salen de aquí; no escribas hex sueltos en las pantallas.
+// Tokens compartidos por móvil y web.
 export const systemColors = {
-  background: "#05070B",
-  backgroundRaised: "#0A0E15",
-  card: "#0D121C",
-  cardAlt: "#121A28",
-  border: "#1C2B45",
-  borderMuted: "#141F33",
-  primary: "#2F6BFF",
-  primarySoft: "#11244A",
-  surfaceActive: "#0B1830",
-  accent: "#5C9DFF",
-  // Eventos importados de Notion Calendar.
-  highlight: "#38C6E8",
-  text: "#EAF1FF",
-  textMuted: "#8FA0BD",
-  textFaint: "#62728F",
-  success: "#65D6A0",
-  warning: "#F2C46D",
-  danger: "#FF6B81",
-  overlay: "rgba(0, 0, 0, 0.8)",
+  background: "#121212",
+  backgroundRaised: "#1A1A1A",
+  card: "#242424",
+  cardAlt: "#2D2D2D",
+  border: "#3A3A3A",
+  borderMuted: "#2D2D2D",
+  primary: "#8B9CF6",
+  primarySoft: "#303654",
+  surfaceActive: "#2D3040",
+  accent: "#8B9CF6",
+  highlight: "#8B9CF6",
+  text: "#F5F5F5",
+  textMuted: "#A3A3A3",
+  textFaint: "#707070",
+  success: "#6FCF97",
+  warning: "#E6B566",
+  danger: "#E57373",
+  overlay: "rgba(0, 0, 0, 0.72)",
 };
 
-// Resplandor azul para boxShadow / textShadow.
-export const glow = (alpha: number) => `rgba(47, 107, 255, ${alpha})`;
+export const glow = (alpha: number) => `rgba(139, 156, 246, ${alpha})`;
